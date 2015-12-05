@@ -91,8 +91,8 @@ public class Grammar {
             return id;
         }
         int ret = terminals.size() * 2;
-        nonTerminals.add(name);
-        nonTerminalsToId.put(name, ret);
+        terminals.add(name);
+        terminalsToId.put(name, ret);
         return ret;
     }
 

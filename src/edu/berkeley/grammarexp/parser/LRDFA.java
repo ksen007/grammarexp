@@ -23,20 +23,23 @@ class Terminal {
 
 public class LRDFA {
     private HashMap<ItemSet, Integer> itemSetsToStateID;
-    private ArrayList<TreeMap<Integer,Integer>> dfa;
+    private ArrayList<TreeMap<Integer,Integer>> GOTO;
+    private ArrayList<TreeMap<Integer,ArrayList<Rule>>> ACTION;
     private ArrayList<ItemSet> states;
     private Grammar g;
 
     public LRDFA(ItemSet I0, Grammar g) {
         this.g = g;
         itemSetsToStateID = new HashMap<ItemSet, Integer>();
-        dfa = new ArrayList<TreeMap<Integer, Integer>>();
+        GOTO = new ArrayList<TreeMap<Integer, Integer>>();
         states = new ArrayList<ItemSet>();
+        ACTION = new ArrayList<TreeMap<Integer, ArrayList<Rule>>>();
+
         Integer i0 = getStateID(I0);
     }
 
     public int getStateAfterTransition(int state, int symbol) {
-        return dfa.get(state).get(symbol);
+        return GOTO.get(state).get(symbol);
     }
 
     public Integer getStateID(ItemSet items) {
@@ -44,27 +47,34 @@ public class LRDFA {
         if (ret == null) {
             ret = itemSetsToStateID.size();
             itemSetsToStateID.put(items, ret);
-            dfa.add(new TreeMap<Integer, Integer>());
+            GOTO.add(new TreeMap<Integer, Integer>());
+            ACTION.add(new TreeMap<Integer, ArrayList<Rule>>());
             states.add(items);
         }
         return ret;
     }
 
-    public void build() {
+    public void createGotoTable() {
         int i = 0;
-        while(i<states.size()) {
+        while (i < states.size()) {
             ItemSet Ij = states.get(i);
             Map<Integer, ItemSet> transitions = Ij.Gotos();
-            TreeMap<Integer,Integer> edges = dfa.get(i);
-            for(Integer symbol: transitions.keySet()) {
+            TreeMap<Integer, Integer> edges = GOTO.get(i);
+            for (Integer symbol : transitions.keySet()) {
                 ItemSet Ik = transitions.get(symbol);
                 edges.put(symbol, getStateID(Ik));
             }
             i++;
         }
 
+    }
+
+    public void build() {
+        createGotoTable();
         createKernelItems();
         initKernelLookaheads();
+        computeLookaheads();
+        createActionTable();
     }
 
     @Override
@@ -78,7 +88,7 @@ public class LRDFA {
             i++;
         }
         i = 0;
-        for (TreeMap<Integer, Integer> edges:dfa) {
+        for (TreeMap<Integer, Integer> edges: GOTO) {
             sb.append("I"+i+": {");
             for(Integer symbol: edges.keySet()) {
                 if (g.isTerminal(symbol)) {
@@ -98,6 +108,7 @@ public class LRDFA {
     private int[] kernelItemsState;
     private HashSet<Integer>[] kernelItemsLookaheads;
     private ArrayList<Integer>[] kernelItemsPropagate;
+    private LinkedHashSet<Integer> pending;
 
     private void createKernelItems() {
         Rule startRule = g.getStartRule();
@@ -115,6 +126,7 @@ public class LRDFA {
         kernelItemsState = new int[len];
         kernelItemsLookaheads = new HashSet[len];
         kernelItemsPropagate = new ArrayList[len];
+        pending = new LinkedHashSet<Integer>();
 
         int i = 0, j = 0;
         for(ItemSet items: states) {
@@ -126,8 +138,9 @@ public class LRDFA {
                     tmp2.put(item, i);
                     kernelItemsLookaheads[i] = new HashSet<Integer>();
                     kernelItemsPropagate[i] = new ArrayList<Integer>();
-                    if (!item.isDotAtStart()) {
+                    if (item.isDotAtStart()) {
                         kernelItemsLookaheads[i].add(g.getTerminalID(new Terminal("$")));
+                        pending.add(i);
                     }
                     i++;
                 }
@@ -153,11 +166,71 @@ public class LRDFA {
                         kernelItemsPropagate[i].add(kernelIndex);
                     } else {
                         kernelItemsLookaheads[kernelIndex].add(a);
+                        pending.add(kernelIndex);
                     }
                 }
             }
             i++;
         }
+
+    }
+
+    private void computeLookaheads() {
+        while(!pending.isEmpty()) {
+            Iterator<Integer> iter = pending.iterator();
+            int i = iter.next();
+            iter.remove();
+            HashSet<Integer> lafrom = kernelItemsLookaheads[i];
+            for (Integer j: kernelItemsPropagate[i]) {
+                HashSet<Integer> la = kernelItemsLookaheads[j];
+                int oldSize = la.size();
+                la.addAll(lafrom);
+                if (la.size() > oldSize) {
+                    pending.add(j);
+                }
+            }
+        }
+        printLookAheads();
+    }
+
+    private void createActionTable() {
+        int i = 0;
+        for (Item item: kernelItems) {
+            if (item.isDotAtEnd()) {
+                HashSet<Integer> lookaheads = kernelItemsLookaheads[i];
+                int state = kernelItemsState[i];
+                for(Integer symbol: lookaheads) {
+                    TreeMap<Integer, ArrayList<Rule>> actions = ACTION.get(state);
+                    ArrayList<Rule> rules = actions.get(symbol);
+                    if (rules == null) {
+                        rules = new ArrayList<Rule>();
+                        actions.put(symbol, rules);
+                    }
+                    rules.add(item.rule);
+                }
+            }
+
+            i++;
+        }
+    }
+
+    private void printLookAheads() {
+        int j = 0;
+        for(Item item: kernelItems) {
+            System.out.print(j+": I"+kernelItemsState[j]+": ");
+            System.out.print(item);
+            System.out.print(" lookaheads = {");
+            for(Integer la: kernelItemsLookaheads[j]) {
+                System.out.print(g.getSymbolFromID(la) + ", ");
+            }
+            System.out.print("} propagate = {");
+            for(Integer ki: kernelItemsPropagate[j]) {
+                System.out.print(ki + ", ");
+            }
+            System.out.println("}");
+            j++;
+        }
+
     }
 
 }

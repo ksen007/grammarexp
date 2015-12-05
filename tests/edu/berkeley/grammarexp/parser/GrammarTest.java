@@ -189,4 +189,21 @@ public class GrammarTest {
         String actual = g.generateLR0().toString();
         assertEquals(expected, actual);
     }
+
+    @Test
+    public void testLALR1() throws Exception {
+        Grammar g = new Grammar();
+        int S = g.getNonTerminalID("S");
+        int L = g.getNonTerminalID("L");
+        int R = g.getNonTerminalID("R");
+
+        g.addProduction(S, L, "=", R);
+        g.addProduction(S, R);
+        g.addProduction(L, "*", R);
+        g.addProduction(L, "i");
+        g.addProduction(R, L);
+
+        String actual = g.generateLR0().toString();
+        //System.out.println(actual);
+    }
 }
