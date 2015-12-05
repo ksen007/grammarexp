@@ -10,13 +10,15 @@ import java.util.*;
 
 
 public class LALR {
+    private LALRTables table;
     private Map<ItemSet, Integer> itemSetsToStateID;
     private ArrayList<TreeMap<Integer, Integer>> GOTO;
     private ArrayList<TreeMap<Integer, ArrayList<Rule>>> ACTION;
     private ArrayList<ItemSet> states;
     private Grammar g;
+    private boolean printItemSets = false;
 
-    public LALR(ItemSet I0, Grammar g) {
+    private  LALR(ItemSet I0, Grammar g) {
         this.g = g;
         itemSetsToStateID = new TreeMap<ItemSet, Integer>();
         GOTO = new ArrayList<TreeMap<Integer, Integer>>();
@@ -24,6 +26,10 @@ public class LALR {
         ACTION = new ArrayList<TreeMap<Integer, ArrayList<Rule>>>();
 
         Integer i0 = getStateID(I0);
+    }
+
+    public void setPrintItemSets(boolean printItemSets) {
+        this.printItemSets = printItemSets;
     }
 
     public int getStateAfterTransition(int state, int symbol) {
@@ -57,64 +63,28 @@ public class LALR {
 
     }
 
-    public Pair<ArrayList<TreeMap<Integer, Integer>>,ArrayList<TreeMap<Integer, ArrayList<Rule>>>> build() {
+    public LALRTables build() {
         createGotoTable();
         createKernelItems();
         initKernelLookaheads();
         computeLookaheads();
         createActionTable();
-        return new Pair(GOTO, ACTION);
+        return new LALRTables(g, GOTO, ACTION);
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         int i = 0;
-        for (ItemSet items : states) {
-            sb.append("I" + i + ":");
-            sb.append(items);
-            sb.append("\n");
-            i++;
-        }
-        i = 0;
-        sb.append("[{\n");
-        for (TreeMap<Integer, Integer> edges : GOTO) {
-            sb.append("\"I" + i + "\" : {");
-            boolean first = true;
-            for (Integer symbol : edges.keySet()) {
-                if (!first) {
-                    sb.append(", ");
-                } else {
-                    first = false;
-                }
-                sb.append("\"" + g.getSymbolFromID(symbol) + "\" : \"I" + edges.get(symbol) + "\"");
+        if (printItemSets) {
+            for (ItemSet items : states) {
+                sb.append("I" + i + ":");
+                sb.append(items);
+                sb.append("\n");
+                i++;
             }
-            sb.append("}\n");
-            i++;
         }
-        sb.append("},\n");
-        sb.append("{\n");
-        i = 0;
-        for (TreeMap<Integer, ArrayList<Rule>> edges : ACTION) {
-            sb.append("\"I" + i + "\" : {");
-            boolean first = true;
-            for (Integer symbol : edges.keySet()) {
-                if (!first) {
-                    sb.append(", ");
-                } else {
-                    first = false;
-                }
-                ArrayList<Rule> rules = edges.get(symbol);
-                sb.append("\"" + g.getSymbolFromID(symbol) + "\" : [");
-                for (Rule rule: rules) {
-                    sb.append(rule);
-                }
-                sb.append("]");
-            }
-            sb.append("}]\n");
-            i++;
-        }
-        sb.append("}\n");
+        sb.append(table.toString());
         return sb.toString();
     }
 
@@ -253,8 +223,11 @@ public class LALR {
         ItemSet I0 = new ItemSet(g);
         I0.add(new Item(g.getStartRule()));
         LALR ret = new LALR(I0, g);
-        ret.build();
+        ret.table = ret.build();
         return ret;
     }
 
+    public LALRTables getLALRTables() {
+        return table;
+    }
 }

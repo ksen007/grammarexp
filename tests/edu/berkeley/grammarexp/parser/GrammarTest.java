@@ -151,7 +151,10 @@ public class GrammarTest {
                 "\"I8\" : {}]\n" +
                 "\"I9\" : {\"$\" : [N ::=  V \"=\" E ]}]\n" +
                 "}\n";
-        String actual = LALR.generateLALRTables(g).toString();
+        LALR lalr = LALR.generateLALRTables(g);
+        lalr.setPrintItemSets(true);
+        String actual = lalr.toString();
+
         assertEquals(expected, actual);
     }
 
@@ -215,7 +218,10 @@ public class GrammarTest {
                 "\"I7\" : {\",\" : [S ::= \"(\" L \")\"], \")\" : [S ::= \"(\" L \")\"], \"$\" : [S ::= \"(\" L \")\"]}]\n" +
                 "\"I8\" : {\",\" : [L ::=  L \",\" S ], \")\" : [L ::=  L \",\" S ]}]\n" +
                 "}\n";
-        String actual = LALR.generateLALRTables(g).toString();
+        LALR lalr = LALR.generateLALRTables(g);
+        lalr.setPrintItemSets(true);
+        String actual = lalr.toString();
+
         assertEquals(expected, actual);
     }
 
@@ -288,7 +294,10 @@ public class GrammarTest {
                 "\"I8\" : {}]\n" +
                 "\"I9\" : {\"$\" : [S ::=  L \"=\" R ]}]\n" +
                 "}\n";
-        String actual = LALR.generateLALRTables(g).toString();
+        LALR lalr = LALR.generateLALRTables(g);
+        lalr.setPrintItemSets(true);
+        String actual = lalr.toString();
+
         assertEquals(expected, actual);
     }
 
@@ -361,7 +370,10 @@ public class GrammarTest {
                 "\"I8\" : {}]\n" +
                 "\"I9\" : {\"$\" : [S ::=  V \"=\" E ]}]\n" +
                 "}\n";
-        String actual = LALR.generateLALRTables(g).toString();
+        LALR lalr = LALR.generateLALRTables(g);
+        lalr.setPrintItemSets(true);
+        String actual = lalr.toString();
+
         assertEquals(expected, actual);
         //System.out.println(actual);
     }

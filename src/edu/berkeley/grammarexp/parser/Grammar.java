@@ -22,6 +22,7 @@ public class Grammar {
 
     private boolean isInit = false;
     private Rule startRule;
+    private LALRTables table;
 
     public Grammar() {
         nonTerminals = new ArrayList();
@@ -151,5 +152,9 @@ public class Grammar {
         return rules.get(nonTerminal);
     }
 
+    public void compile() {
+        LALR lalr = LALR.generateLALRTables(this);
+        table = lalr.getLALRTables();
+    }
 
 }
