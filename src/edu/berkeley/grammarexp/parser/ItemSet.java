@@ -8,12 +8,12 @@ import java.util.*;
  * Time: 10:17 PM
  */
 public class ItemSet {
-    private HashSet<Item> items;
+    private HashMap<Item, Integer> items;
     private Grammar g;
     private int id;
 
     public ItemSet(Grammar g) {
-        items = new HashSet<Item>();
+        items = new HashMap<Item, Integer>();
         this.g = g;
     }
 
@@ -32,15 +32,15 @@ public class ItemSet {
             Iterator<Item> iter = pending.iterator();
             item = iter.next();
             iter.remove();
-            boolean added = items.add(item);
+            Integer prev = items.put(item, -1);
 
-            if (added && !item.isDotAtEnd()) {
+            if (prev == null && !item.isDotAtEnd()) {
                 int symbol = item.getSymbolUnderDot();
                 if (!g.isTerminal(symbol)) {
                     List<Rule> rl = g.getRules(symbol);
                     for (Rule r: rl) {
                         Item newItem = new Item(r);
-                        if (!items.contains(newItem)) {
+                        if (!items.containsKey(newItem)) {
                             pending.add(newItem);
                         }
                     }
@@ -51,7 +51,7 @@ public class ItemSet {
 
     public Map<Integer,ItemSet> Gotos() {
         TreeMap<Integer,ItemSet> nexts = new TreeMap<Integer, ItemSet>();
-        for (Item item: items) {
+        for (Item item: items.keySet()) {
             if (!item.isDotAtEnd()) {
                 int symbol = item.getSymbolUnderDot();
                 ItemSet current = nexts.get(symbol);
@@ -80,10 +80,14 @@ public class ItemSet {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for(Item item: items) {
+        for(Item item: items.keySet()) {
             sb.append(item.toString());
             sb.append("\n");
         }
         return sb.toString();
+    }
+
+    public HashMap<Item, Integer> getItems() {
+        return items;
     }
 }

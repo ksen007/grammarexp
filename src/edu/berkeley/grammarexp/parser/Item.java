@@ -6,15 +6,15 @@ package edu.berkeley.grammarexp.parser;
  * Time: 9:46 PM
  */
 public class Item {
-    private Rule rule;
-    private int dotLocation;
+    protected Rule rule;
+    protected int dotLocation;
 
     public Item(Rule rule) {
         this.rule = rule;
         dotLocation = 0;
     }
 
-    private Item(Rule rule, int dotLocation) {
+    protected Item(Rule rule, int dotLocation) {
         this.rule = rule;
         this.dotLocation = dotLocation;
     }

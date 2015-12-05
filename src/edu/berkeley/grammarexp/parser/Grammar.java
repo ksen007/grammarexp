@@ -68,6 +68,10 @@ public class Grammar {
         return ret;
     }
 
+    public Rule getStartRule() {
+        return startRule;
+    }
+
     public Object getSymbolFromID(int id) {
         if (isTerminal(id)) {
             if (id % 2 == 0) {
@@ -171,6 +175,10 @@ public class Grammar {
     }
 
 
+    public boolean isFirstFollowSetsComputed () {
+        return first != null;
+    }
+
     public void computeFirstFollowSets() {
         if (first != null) return;
 
@@ -267,6 +275,15 @@ public class Grammar {
         return sb.toString();
     }
 
+    public Set<Integer> getFirst(int nonTerminalId) {
+        return first[getNonTerminalIndex(nonTerminalId)];
+    }
+
+    public boolean getNullable(int nonTerminalId) {
+        return nullable[getNonTerminalIndex(nonTerminalId)];
+    }
+
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -289,5 +306,9 @@ public class Grammar {
         LRDFA ret = new LRDFA(I0, this);
         ret.build();
         return ret;
+    }
+
+    public Set<Integer>[] getFirst() {
+        return first;
     }
 }

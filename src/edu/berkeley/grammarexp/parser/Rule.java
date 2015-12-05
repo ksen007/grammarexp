@@ -8,7 +8,7 @@ package edu.berkeley.grammarexp.parser;
 public class Rule {
     private int lhs;
     private RuleRHS rhs;
-    private Grammar g;
+    protected Grammar g;
     private int ID;
 
     public Rule(int lhs, RuleRHS rhs, int id, Grammar g) {
