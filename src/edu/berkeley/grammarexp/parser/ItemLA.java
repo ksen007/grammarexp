@@ -17,12 +17,9 @@ public class ItemLA extends Item {
     }
 
 
-    public Set<Integer> first() {
+    public Set<Integer> first(FirstFollow firstFollow) {
         Grammar g = rule.g;
         Set<Integer> ret = new HashSet<Integer>();
-        if (g.isFirstFollowSetsComputed()) {
-            g.computeFirstFollowSets();
-        }
         RuleRHS y = rule.getRHS();
 
         int i;
@@ -35,8 +32,8 @@ public class ItemLA extends Item {
                 allNullable = false;
                 break;
             } else {
-                ret.addAll(g.getFirst(Yi));
-                if (!g.getNullable(Yi)) {
+                ret.addAll(firstFollow.getFirst(Yi));
+                if (!firstFollow.getNullable(Yi)) {
                     allNullable = false;
                     break;
                 }
@@ -65,4 +62,15 @@ public class ItemLA extends Item {
         return super.toString() + ", " + rule.g.getSymbolFromID(la);
     }
 
+    @Override
+    public int compareTo(Object o) {
+        if (!(o instanceof ItemLA)) throw new RuntimeException("Type of "+o+" must be of type ItemLA.");
+        ItemLA other = (ItemLA) o;
+        int diff = super.compareTo(o);
+        if (diff == 0) {
+            return la - other.la;
+        } else {
+            return diff;
+        }
+    }
 }

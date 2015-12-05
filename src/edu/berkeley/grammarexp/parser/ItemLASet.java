@@ -8,15 +8,15 @@ import java.util.*;
  * Time: 5:14 PM
  */
 public class ItemLASet {
-    HashSet<ItemLA> itemLas;
+    TreeSet<ItemLA> itemLas;
     private Grammar g;
 
     public ItemLASet(Grammar g) {
-        itemLas = new HashSet<ItemLA>();
+        itemLas = new TreeSet<ItemLA>();
         this.g = g;
     }
 
-    public void closure(ItemLA itemLa) {
+    public void closure(ItemLA itemLa, FirstFollow firstFollow) {
         LinkedHashSet<ItemLA> pending = new LinkedHashSet<ItemLA>();
         pending.add(itemLa);
         while(!pending.isEmpty()) {
@@ -29,7 +29,7 @@ public class ItemLASet {
                 int symbol = itemLa.getSymbolUnderDot();
                 if (!g.isTerminal(symbol)) {
                     List<Rule> rl = g.getRules(symbol);
-                    Set<Integer> first = itemLa.first();
+                    Set<Integer> first = itemLa.first(firstFollow);
                     for (Integer b: first) {
                         for (Rule r : rl) {
                             ItemLA newItem = new ItemLA(new Item(r), b);

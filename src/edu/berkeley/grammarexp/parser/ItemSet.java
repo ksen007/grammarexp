@@ -7,22 +7,13 @@ import java.util.*;
  * Date: 11/30/15
  * Time: 10:17 PM
  */
-public class ItemSet {
-    private HashMap<Item, Integer> items;
+public class ItemSet implements Comparable {
+    private Map<Item, Integer> items;
     private Grammar g;
-    private int id;
 
     public ItemSet(Grammar g) {
-        items = new HashMap<Item, Integer>();
+        items = new TreeMap<Item, Integer>();
         this.g = g;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public void add(Item item) {
@@ -87,7 +78,25 @@ public class ItemSet {
         return sb.toString();
     }
 
-    public HashMap<Item, Integer> getItems() {
+    public Map<Item, Integer> getItems() {
         return items;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        if (!(o instanceof ItemSet)) throw new RuntimeException("Type of "+o+" must be ItemSet.");
+        ItemSet other = (ItemSet)o;
+        int diff = items.size()-other.items.size();
+        if (diff != 0) return diff;
+
+        Iterator<Item> iter1 = items.keySet().iterator();
+        Iterator<Item> iter2 = other.items.keySet().iterator();
+        while(iter1.hasNext()) {
+            Item item1 = iter1.next();
+            Item item2 = iter2.next();
+            diff = item1.compareTo(item2);
+            if (diff != 0) return diff;
+        }
+        return 0;
     }
 }

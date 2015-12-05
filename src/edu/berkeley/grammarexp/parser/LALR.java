@@ -7,30 +7,18 @@ import java.util.*;
  * Date: 12/2/15
  * Time: 10:22 PM
  */
-class Terminal {
-    private String val;
-
-    public Terminal(String val) {
-        this.val = val;
-    }
-
-    @Override
-    public String toString() {
-        return val;
-    }
-}
 
 
-public class LRDFA {
-    private HashMap<ItemSet, Integer> itemSetsToStateID;
+public class LALR {
+    private Map<ItemSet, Integer> itemSetsToStateID;
     private ArrayList<TreeMap<Integer, Integer>> GOTO;
     private ArrayList<TreeMap<Integer, ArrayList<Rule>>> ACTION;
     private ArrayList<ItemSet> states;
     private Grammar g;
 
-    public LRDFA(ItemSet I0, Grammar g) {
+    public LALR(ItemSet I0, Grammar g) {
         this.g = g;
-        itemSetsToStateID = new HashMap<ItemSet, Integer>();
+        itemSetsToStateID = new TreeMap<ItemSet, Integer>();
         GOTO = new ArrayList<TreeMap<Integer, Integer>>();
         states = new ArrayList<ItemSet>();
         ACTION = new ArrayList<TreeMap<Integer, ArrayList<Rule>>>();
@@ -95,7 +83,7 @@ public class LRDFA {
             boolean first = true;
             for (Integer symbol : edges.keySet()) {
                 if (!first) {
-                    sb.append(",");
+                    sb.append(", ");
                 } else {
                     first = false;
                 }
@@ -112,7 +100,7 @@ public class LRDFA {
             boolean first = true;
             for (Integer symbol : edges.keySet()) {
                 if (!first) {
-                    sb.append(",");
+                    sb.append(", ");
                 } else {
                     first = false;
                 }
@@ -142,7 +130,7 @@ public class LRDFA {
         ArrayList<Item> tmp = new ArrayList<Item>();
         int len = 0;
         for (ItemSet items : states) {
-            HashMap<Item, Integer> tmp2 = items.getItems();
+            Map<Item, Integer> tmp2 = items.getItems();
             for (Item item : tmp2.keySet()) {
                 if (!item.isDotAtStart() || item.rule.equals(startRule)) {
                     len++;
@@ -157,7 +145,7 @@ public class LRDFA {
 
         int i = 0, j = 0;
         for (ItemSet items : states) {
-            HashMap<Item, Integer> tmp2 = items.getItems();
+            Map<Item, Integer> tmp2 = items.getItems();
             for (Item item : tmp2.keySet()) {
                 if (!item.isDotAtStart() || item.rule.equals(startRule)) {
                     kernelItems[i] = item;
@@ -166,7 +154,7 @@ public class LRDFA {
                     kernelItemsLookaheads[i] = new HashSet<Integer>();
                     kernelItemsPropagate[i] = new ArrayList<Integer>();
                     if (item.isDotAtStart()) {
-                        kernelItemsLookaheads[i].add(g.getTerminalID(new Terminal("$")));
+                        kernelItemsLookaheads[i].add(g.getTerminalID(new Token("$")));
                         pending.add(i);
                     }
                     i++;
@@ -177,12 +165,14 @@ public class LRDFA {
     }
 
     private void initKernelLookaheads() {
-        int hashTerminal = g.getTerminalID(new Terminal("#"));
+        int hashTerminal = g.getTerminalID(new Token("#"));
         int i = 0;
         for (Item kItem : kernelItems) {
             int state = kernelItemsState[i];
             ItemLASet itemLas = new ItemLASet(g);
-            itemLas.closure(new ItemLA(kItem, hashTerminal));
+            FirstFollow firstFollow = new FirstFollow(g);
+            firstFollow.computeFirstFollowSets(false);
+            itemLas.closure(new ItemLA(kItem, hashTerminal), firstFollow);
             for (ItemLA itemLA : itemLas.itemLas) {
                 if (!itemLA.isDotAtEnd()) {
                     int symbol = itemLA.getSymbolUnderDot();
@@ -257,6 +247,14 @@ public class LRDFA {
             j++;
         }
 
+    }
+
+    public static LALR generateLALRTables(Grammar g) {
+        ItemSet I0 = new ItemSet(g);
+        I0.add(new Item(g.getStartRule()));
+        LALR ret = new LALR(I0, g);
+        ret.build();
+        return ret;
     }
 
 }

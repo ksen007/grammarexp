@@ -8,15 +8,6 @@ import java.util.*;
  * Time: 2:54 PM
  */
 
-class Start {
-    private String val = "Start";
-
-    @Override
-    public String toString() {
-        return val;
-    }
-}
-
 public class Grammar {
     private ArrayList nonTerminals;
     private HashMap<Object, Integer> nonTerminalsToId;
@@ -27,12 +18,7 @@ public class Grammar {
 
     private int nRules = 0;
 
-    private HashMap<Integer, ArrayList<Rule>> rules;
-
-
-    private boolean[] nullable = null;
-    private Set<Integer>[] follow = null;
-    private Set<Integer>[] first = null;
+    private ArrayList<ArrayList<Rule>> rules;
 
     private boolean isInit = false;
     private Rule startRule;
@@ -42,7 +28,7 @@ public class Grammar {
         nonTerminalsToId = new HashMap<Object, Integer>();
         terminals = new ArrayList();
         terminalsToId = new HashMap<Object, Integer>();
-        rules = new HashMap<Integer, ArrayList<Rule>>();
+        rules = new ArrayList<ArrayList<Rule>>();
     }
 
     public int getNonTerminalID(Object name) {
@@ -51,16 +37,17 @@ public class Grammar {
         if (!isInit) {
             isInit = true;
             localInit = true;
-            start = getNonTerminalID(new Start());
+            start = getNonTerminalID(new NonTerminal("Start"));
         }
 
         Integer id = nonTerminalsToId.get(name);
         if (id != null) {
             return id;
         }
-        int ret = -nonTerminals.size() - 1;
+        int ret = nonTerminals.size();
         nonTerminals.add(name);
         nonTerminalsToId.put(name, ret);
+        rules.add(new ArrayList<Rule>());
 
         if (localInit) {
             startRule = addProduction(start, ret);
@@ -68,29 +55,12 @@ public class Grammar {
         return ret;
     }
 
-    public Rule getStartRule() {
-        return startRule;
-    }
-
-    public Object getSymbolFromID(int id) {
-        if (isTerminal(id)) {
-            if (id % 2 == 0) {
-                return terminals.get(id / 2);
-            } else {
-                return new Character((char) (id / 2));
-            }
-        } else {
-            id = -id - 1;
-            return nonTerminals.get(id);
-        }
-    }
-
     public int getTerminalID(Object name) {
         Integer id = terminalsToId.get(name);
         if (id != null) {
             return id;
         }
-        int ret = terminals.size() * 2;
+        int ret = -terminals.size() * 2 - 2;
         terminals.add(name);
         terminalsToId.put(name, ret);
         return ret;
@@ -98,32 +68,41 @@ public class Grammar {
 
     public int getTerminalID(char ch) {
         assert ch >= 0;
-        return ch * 2 + 1;
+        return - ch * 2 - 1;
     }
 
-//    public Object getSymbolFromID(int id) {
-//        if (id % 2 == 0) {
-//            return terminals.get(id / 2);
-//        } else {
-//            return new Character((char) (id / 2));
-//        }
-//    }
+    public Rule getStartRule() {
+        return startRule;
+    }
+
+    public int getNonTerminalsCount() {
+        return nonTerminals.size();
+    }
+
+    public Object getSymbolFromID(int id) {
+        if (isTerminal(id)) {
+            id = -id;
+            if (id % 2 == 0) {
+                return terminals.get(id / 2 - 1);
+            } else {
+                return new Character((char) (id / 2));
+            }
+        } else {
+            return nonTerminals.get(id);
+        }
+    }
 
     public boolean isTerminal(int id) {
-        return id >= 0;
+        return id < 0;
     }
 
     public boolean isTerminalCharacter(int id) {
-        return id >= 0 && id % 2 == 1;
+        return id < 0 && (-id) % 2 == 1;
     }
 
     private void addRule(Rule rule) {
         int lhs = rule.getLHS();
         ArrayList<Rule> ruleList = rules.get(lhs);
-        if (ruleList == null) {
-            ruleList = new ArrayList<Rule>();
-            rules.put(lhs, ruleList);
-        }
         ruleList.add(rule);
     }
 
@@ -156,139 +135,11 @@ public class Grammar {
         return ret2;
     }
 
-    private int getNonTerminalIndex(int id) {
-        return -id - 1;
-    }
-
-    private boolean add(Set<Integer> to, Set<Integer> from, boolean changed) {
-        int sz = to.size();
-        to.addAll(from);
-        if (to.size() > sz) return true;
-        else return changed;
-    }
-
-    private boolean add(Set<Integer> to, int from, boolean changed) {
-        int sz = to.size();
-        to.add(from);
-        if (to.size() > sz) return true;
-        else return changed;
-    }
-
-
-    public boolean isFirstFollowSetsComputed () {
-        return first != null;
-    }
-
-    public void computeFirstFollowSets() {
-        if (first != null) return;
-
-        first = new HashSet[nonTerminals.size()];
-        follow = new HashSet[nonTerminals.size()];
-        nullable = new boolean[nonTerminals.size()];
-
-        int i;
-        for (i = 0; i < first.length; i++) {
-            first[i] = new HashSet<Integer>();
-            follow[i] = new HashSet<Integer>();
-        }
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (Integer lhs: rules.keySet()) {
-                for (Rule r : rules.get(lhs)) {
-                    int X = getNonTerminalIndex(r.getLHS());
-                    RuleRHS y = r.getRHS();
-
-                    int k = y.length();
-                    boolean allNullable = true;
-                    for (i = 0; i < k; i++) {
-                        int Yi = y.get(i);
-                        if (allNullable) {
-                            if (isTerminal(Yi)) {
-                                changed = add(first[X], Yi, changed);
-                                allNullable = false;
-                            } else {
-                                int Yidx = getNonTerminalIndex(Yi);
-                                changed = add(first[X], first[Yidx], changed);
-                                if (!nullable[Yidx]) {
-                                    allNullable = false;
-                                }
-                            }
-                        }
-                        int Yidx = getNonTerminalIndex(Yi);
-                        boolean postNullable = true;
-                        if (!isTerminal(Yi)) {
-                            for (int j = i + 1; j < k; j++) {
-                                int Yj = y.get(j);
-                                if (postNullable) {
-                                    if (isTerminal(Yj)) {
-                                        changed = add(follow[Yidx], Yj, changed);
-                                        postNullable = false;
-                                        break;
-                                    } else {
-                                        int Yjdx = getNonTerminalIndex(Yj);
-                                        changed = add(follow[Yidx], first[Yjdx], changed);
-                                        if (!nullable[Yjdx]) {
-                                            postNullable = false;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            if (postNullable) {
-                                changed = add(follow[Yidx], follow[X], changed);
-                            }
-                        }
-                    }
-                    if (allNullable) {
-                        boolean old = nullable[X];
-                        nullable[X] = true;
-                        if (!old)
-                            changed = true;
-                    }
-                }
-            }
-        }
-    }
-
-
-    public String getFirstFollowAsString() {
-        int len = nonTerminals.size();
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < len; i++) {
-            sb.append(nonTerminals.get(i));
-            sb.append(": First = {");
-            for (Integer t : first[i]) {
-                sb.append(getSymbolFromID(t));
-                sb.append(",");
-            }
-            sb.append("}  Follow = {");
-            for (Integer t : follow[i]) {
-                sb.append(getSymbolFromID(t));
-                sb.append(",");
-            }
-            sb.append("}  Nullable = ");
-            sb.append(nullable[i]);
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
-
-    public Set<Integer> getFirst(int nonTerminalId) {
-        return first[getNonTerminalIndex(nonTerminalId)];
-    }
-
-    public boolean getNullable(int nonTerminalId) {
-        return nullable[getNonTerminalIndex(nonTerminalId)];
-    }
-
-
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for (Integer lhs: rules.keySet()) {
-            for (Rule r : rules.get(lhs)) {
+        for (ArrayList<Rule> ruleList: rules) {
+            for (Rule r : ruleList) {
                 sb.append(r.toString());
                 sb.append("\n");
             }
@@ -300,12 +151,5 @@ public class Grammar {
         return rules.get(nonTerminal);
     }
 
-    public LRDFA generateLR0() {
-        ItemSet I0 = new ItemSet(this);
-        I0.add(new Item(startRule));
-        LRDFA ret = new LRDFA(I0, this);
-        ret.build();
-        return ret;
-    }
 
 }

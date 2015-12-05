@@ -5,7 +5,7 @@ package edu.berkeley.grammarexp.parser;
  * Date: 11/30/15
  * Time: 9:46 PM
  */
-public class Item {
+public class Item implements Comparable {
     protected Rule rule;
     protected int dotLocation;
 
@@ -50,5 +50,17 @@ public class Item {
 
     public Item advance() {
         return new Item(this.rule, this.dotLocation + 1);
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        if (!(o instanceof Item)) throw new RuntimeException("Type of "+o+" must be Item.");
+        Item other = (Item)o;
+        int diff = rule.getID()-other.rule.getID();
+        if (diff == 0) {
+            return dotLocation - other.dotLocation;
+        } else {
+            return diff;
+        }
     }
 }
