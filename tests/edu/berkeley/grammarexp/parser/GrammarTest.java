@@ -93,37 +93,37 @@ public class GrammarTest {
         g.addProduction(V, "x");
         g.addProduction(V, "*", E);
 
-        String expected = "I0:V ::= \"null\", location = 0\n" +
-                "Start ::=  N , location = 0\n" +
+        String expected = "I0:Start ::=  N , location = 0\n" +
+                "N ::=  V \"=\" E , location = 0\n" +
                 "N ::=  E , location = 0\n" +
-                "V ::= \"null\" E , location = 0\n" +
-                "N ::=  V \"null\" E , location = 0\n" +
                 "E ::=  V , location = 0\n" +
+                "V ::= \"x\", location = 0\n" +
+                "V ::= \"*\" E , location = 0\n" +
                 "\n" +
                 "I1:N ::=  E , location = 1\n" +
                 "\n" +
-                "I2:E ::=  V , location = 1\n" +
-                "N ::=  V \"null\" E , location = 1\n" +
+                "I2:N ::=  V \"=\" E , location = 1\n" +
+                "E ::=  V , location = 1\n" +
                 "\n" +
                 "I3:Start ::=  N , location = 1\n" +
                 "\n" +
-                "I4:V ::= \"null\", location = 0\n" +
-                "V ::= \"null\" E , location = 1\n" +
-                "V ::= \"null\" E , location = 0\n" +
-                "E ::=  V , location = 0\n" +
+                "I4:E ::=  V , location = 0\n" +
+                "V ::= \"x\", location = 0\n" +
+                "V ::= \"*\" E , location = 0\n" +
+                "V ::= \"*\" E , location = 1\n" +
                 "\n" +
-                "I5:V ::= \"null\", location = 1\n" +
+                "I5:V ::= \"x\", location = 1\n" +
                 "\n" +
-                "I6:V ::= \"null\", location = 0\n" +
-                "V ::= \"null\" E , location = 0\n" +
-                "N ::=  V \"null\" E , location = 2\n" +
-                "E ::=  V , location = 0\n" +
+                "I6:E ::=  V , location = 0\n" +
+                "N ::=  V \"=\" E , location = 2\n" +
+                "V ::= \"x\", location = 0\n" +
+                "V ::= \"*\" E , location = 0\n" +
                 "\n" +
-                "I7:V ::= \"null\" E , location = 2\n" +
+                "I7:V ::= \"*\" E , location = 2\n" +
                 "\n" +
                 "I8:E ::=  V , location = 1\n" +
                 "\n" +
-                "I9:N ::=  V \"null\" E , location = 3\n" +
+                "I9:N ::=  V \"=\" E , location = 3\n" +
                 "\n" +
                 "I0: {E: I1,V: I2,N: I3,*: I4,x: I5,}\n" +
                 "I1: {}\n" +
@@ -150,32 +150,32 @@ public class GrammarTest {
         g.addProduction(L, S);
         g.addProduction(L, L, ",", S);
 
-        String expected = "I0:S ::= \"null\", location = 0\n" +
-                "Start ::=  S , location = 0\n" +
-                "S ::= \"null\" L \"null\", location = 0\n" +
+        String expected = "I0:Start ::=  S , location = 0\n" +
+                "S ::= \"(\" L \")\", location = 0\n" +
+                "S ::= \"x\", location = 0\n" +
                 "\n" +
                 "I1:Start ::=  S , location = 1\n" +
                 "\n" +
-                "I2:S ::= \"null\", location = 0\n" +
-                "S ::= \"null\" L \"null\", location = 1\n" +
-                "S ::= \"null\" L \"null\", location = 0\n" +
-                "L ::=  L \"null\" S , location = 0\n" +
+                "I2:S ::= \"(\" L \")\", location = 0\n" +
+                "S ::= \"x\", location = 0\n" +
+                "S ::= \"(\" L \")\", location = 1\n" +
                 "L ::=  S , location = 0\n" +
+                "L ::=  L \",\" S , location = 0\n" +
                 "\n" +
-                "I3:S ::= \"null\", location = 1\n" +
+                "I3:S ::= \"x\", location = 1\n" +
                 "\n" +
-                "I4:L ::=  L \"null\" S , location = 1\n" +
-                "S ::= \"null\" L \"null\", location = 2\n" +
+                "I4:S ::= \"(\" L \")\", location = 2\n" +
+                "L ::=  L \",\" S , location = 1\n" +
                 "\n" +
                 "I5:L ::=  S , location = 1\n" +
                 "\n" +
-                "I6:S ::= \"null\" L \"null\", location = 3\n" +
+                "I6:S ::= \"(\" L \")\", location = 3\n" +
                 "\n" +
-                "I7:S ::= \"null\", location = 0\n" +
-                "L ::=  L \"null\" S , location = 2\n" +
-                "S ::= \"null\" L \"null\", location = 0\n" +
+                "I7:S ::= \"(\" L \")\", location = 0\n" +
+                "S ::= \"x\", location = 0\n" +
+                "L ::=  L \",\" S , location = 2\n" +
                 "\n" +
-                "I8:L ::=  L \"null\" S , location = 3\n" +
+                "I8:L ::=  L \",\" S , location = 3\n" +
                 "\n" +
                 "I0: {S: I1,(: I2,x: I3,}\n" +
                 "I1: {}\n" +

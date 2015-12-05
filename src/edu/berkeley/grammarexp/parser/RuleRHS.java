@@ -50,15 +50,17 @@ public class RuleRHS {
             int sym = symbols[i];
             Object terminal = null;
             if (g.isTerminalCharacter(sym)) {
+                terminal = g.getSymbolFromID(sym);
                 tmp+=terminal;
             } else {
                 if (tmp.length()>0) {
                     sb.append("\""+tmp+"\"");
                 }
                 tmp = "";
-                if (terminal != null)
-                    sb.append(" "+terminal+" ");
-                else {
+                if (g.isTerminal(sym)) {
+                    terminal = g.getSymbolFromID(sym);
+                    sb.append(" " + terminal + " ");
+                } else {
                     sb.append(" "+g.getSymbolFromID(sym)+" ");
                 }
             }

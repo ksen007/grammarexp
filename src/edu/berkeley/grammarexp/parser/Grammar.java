@@ -25,7 +25,9 @@ public class Grammar {
     private ArrayList terminals;
     private HashMap<Object, Integer> terminalsToId;
 
-    private HashMap<Integer,ArrayList<Rule>> rules;
+    private int nRules = 0;
+
+    private HashMap<Integer, ArrayList<Rule>> rules;
 
 
     private boolean[] nullable = null;
@@ -108,7 +110,7 @@ public class Grammar {
     }
 
     public boolean isTerminalCharacter(int id) {
-        return id >= 0 && id%2 == 1;
+        return id >= 0 && id % 2 == 1;
     }
 
     private void addRule(Rule rule) {
@@ -145,7 +147,8 @@ public class Grammar {
                 throw new RuntimeException("Unknown symbolc type in addProduction: " + symbols[i]);
             }
         }
-        addRule(ret2 = new Rule(lhs, ret, this));
+        addRule(ret2 = new Rule(lhs, ret, nRules, this));
+        nRules++;
         return ret2;
     }
 
@@ -245,15 +248,15 @@ public class Grammar {
         int len = nonTerminals.size();
         StringBuilder sb = new StringBuilder();
 
-        for(int i = 0; i<len; i++) {
+        for (int i = 0; i < len; i++) {
             sb.append(nonTerminals.get(i));
             sb.append(": First = {");
-            for(Integer t: first[i]) {
+            for (Integer t : first[i]) {
                 sb.append(getSymbolFromID(t));
                 sb.append(",");
             }
             sb.append("}  Follow = {");
-            for(Integer t: follow[i]) {
+            for (Integer t : follow[i]) {
                 sb.append(getSymbolFromID(t));
                 sb.append(",");
             }

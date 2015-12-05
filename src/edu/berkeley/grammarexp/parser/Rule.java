@@ -9,23 +9,25 @@ public class Rule {
     private int lhs;
     private RuleRHS rhs;
     private Grammar g;
+    private int ID;
 
-    public Rule(int lhs, RuleRHS rhs, Grammar g) {
+    public Rule(int lhs, RuleRHS rhs, int id, Grammar g) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.g = g;
+        this.ID = id;
     }
 
     @Override
     public int hashCode() {
-        return lhs + rhs.hashCode();
+        return ID;
     }
 
     @Override
     public boolean equals(Object obj) {
         if(!(obj instanceof Rule)) return false;
         Rule other = (Rule) obj;
-        return (lhs == other.lhs) && (rhs.equals(other.rhs));
+        return (ID == other.ID);
     }
 
 
@@ -44,5 +46,9 @@ public class Rule {
 
     public int getSymbol(int i) {
         return rhs.get(i);
+    }
+
+    public int getID() {
+        return ID;
     }
 }
