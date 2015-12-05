@@ -308,7 +308,4 @@ public class Grammar {
         return ret;
     }
 
-    public Set<Integer>[] getFirst() {
-        return first;
-    }
 }
