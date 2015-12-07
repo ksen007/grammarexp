@@ -2,6 +2,9 @@ package edu.berkeley.grammarexp.parser;
 
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
+
 import static junit.framework.TestCase.assertEquals;
 
 /**
@@ -376,5 +379,25 @@ public class GrammarTest {
 
         assertEquals(expected, actual);
         //System.out.println(actual);
+    }
+
+    @Test
+    public void testParse1() throws Exception {
+        Grammar g = new Grammar();
+
+        int S = g.getNonTerminalID("S");
+        int V = g.getNonTerminalID("V");
+        int E = g.getNonTerminalID("E");
+
+        g.addProduction(S, V, "=", E);
+        g.addProduction(S, E);
+        g.addProduction(E, V);
+        g.addProduction(V, "x");
+        g.addProduction(V, "*", E);
+
+        g.compile();
+        String inp = "x=**x";
+        String out = g.parse(new InputStreamReader(new ByteArrayInputStream(inp.getBytes())));
+        System.out.println(out);
     }
 }

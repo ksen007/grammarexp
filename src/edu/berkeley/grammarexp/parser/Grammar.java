@@ -1,6 +1,10 @@
 package edu.berkeley.grammarexp.parser;
 
-import java.util.*;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Author: Koushik Sen (ksen@cs.berkeley.edu)
@@ -22,7 +26,9 @@ public class Grammar {
 
     private boolean isInit = false;
     private Rule startRule;
+    private int startNonTerminal;
     private LALRTables table;
+    public int endToken;
 
     public Grammar() {
         nonTerminals = new ArrayList();
@@ -38,7 +44,8 @@ public class Grammar {
         if (!isInit) {
             isInit = true;
             localInit = true;
-            start = getNonTerminalID(new NonTerminal("Start"));
+            startNonTerminal = start = getNonTerminalID(new NonTerminal("Start"));
+            endToken = getTerminalID(new Token("$"));
         }
 
         Integer id = nonTerminalsToId.get(name);
@@ -154,7 +161,53 @@ public class Grammar {
 
     public void compile() {
         LALR lalr = LALR.generateLALRTables(this);
+        System.out.println(lalr.toString());
         table = lalr.getLALRTables();
+    }
+
+
+
+    public String parse(InputStreamReader in) throws IOException {
+        LRStack stack = new LRStack(this);
+        stack.push("",0);
+        int inp = in.read();
+
+        while (true) {
+            int token;
+            if (inp == -1) {
+                token = endToken;
+            } else {
+                token = getTerminalID((char) inp);
+            }
+            Integer state = stack.topState();
+            Integer nextState = table.GOTO.get(state).get(token);
+            if (nextState!=null) {
+                stack.push(token, nextState);
+                inp = in.read();
+            } else {
+                ArrayList<Rule> rls = table.ACTION.get(state).get(token);
+                if (rls == null || rls.isEmpty()) {
+                    in.close();
+                    throw new ParsingException("Parsing failed: not expecting "+(char)inp);
+                } else {
+                    Rule rl = rls.get(0);
+                    int X = rl.getLHS();
+                    int len = rl.getRHS().length();
+                    String mod = stack.popn(len);
+                    mod = LRStack.LB + " " + getSymbolFromID(X)+ " "+mod + " "+LRStack.RB;
+                    if (X == startNonTerminal) {
+                        if ((inp = in.read()) != -1) {
+                            in.close();
+                            throw new ParsingException("Parsing failed: more characters left "+(char)inp);
+                        } else {
+                            in.close();
+                            return mod;
+                        }
+                    }
+                    stack.push(mod, table.GOTO.get(stack.topState()).get(X));
+                }
+            }
+        }
     }
 
 }

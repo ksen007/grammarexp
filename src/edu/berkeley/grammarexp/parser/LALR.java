@@ -124,7 +124,7 @@ public class LALR {
                     kernelItemsLookaheads[i] = new HashSet<Integer>();
                     kernelItemsPropagate[i] = new ArrayList<Integer>();
                     if (item.isDotAtStart()) {
-                        kernelItemsLookaheads[i].add(g.getTerminalID(new Token("$")));
+                        kernelItemsLookaheads[i].add(g.endToken);
                         pending.add(i);
                     }
                     i++;
