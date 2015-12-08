@@ -1,10 +1,9 @@
 package edu.berkeley.grammarexp.parser;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * Author: Koushik Sen (ksen@cs.berkeley.edu)
@@ -13,7 +12,10 @@ import java.util.List;
  */
 
 public class Grammar {
+    final public static String LB = "{{";
+    final public static String RB = "}}";
     private ArrayList nonTerminals;
+    private ArrayList<Boolean> isHiddenNonTerminals;
     private HashMap<Object, Integer> nonTerminalsToId;
 
 
@@ -32,19 +34,20 @@ public class Grammar {
 
     public Grammar() {
         nonTerminals = new ArrayList();
+        isHiddenNonTerminals = new ArrayList<Boolean>();
         nonTerminalsToId = new HashMap<Object, Integer>();
         terminals = new ArrayList();
         terminalsToId = new HashMap<Object, Integer>();
         rules = new ArrayList<ArrayList<Rule>>();
     }
 
-    public int getNonTerminalID(Object name) {
+    public int getNonTerminalID(Object name, boolean hidden) {
         int start = 0;
         boolean localInit = false;
         if (!isInit) {
             isInit = true;
             localInit = true;
-            startNonTerminal = start = getNonTerminalID(new NonTerminal("Start"));
+            startNonTerminal = start = getNonTerminalID(new NonTerminal("Start"), true);
             endToken = getTerminalID(new Token("$"));
         }
 
@@ -54,6 +57,7 @@ public class Grammar {
         }
         int ret = nonTerminals.size();
         nonTerminals.add(name);
+        isHiddenNonTerminals.add(hidden);
         nonTerminalsToId.put(name, ret);
         rules.add(new ArrayList<Rule>());
 
@@ -61,6 +65,10 @@ public class Grammar {
             startRule = addProduction(start, ret);
         }
         return ret;
+    }
+
+    public int getNonTerminalID(Object name) {
+        return getNonTerminalID(name, false);
     }
 
     public int getTerminalID(Object name) {
@@ -76,7 +84,7 @@ public class Grammar {
 
     public int getTerminalID(char ch) {
         assert ch >= 0;
-        return - ch * 2 - 1;
+        return -ch * 2 - 1;
     }
 
     public Rule getStartRule() {
@@ -97,6 +105,15 @@ public class Grammar {
             }
         } else {
             return nonTerminals.get(id);
+        }
+    }
+
+    public boolean getHiddenFromID(int id) {
+        if (isTerminal(id)) {
+            id = -id;
+            return true;
+        } else {
+            return isHiddenNonTerminals.get(id);
         }
     }
 
@@ -146,7 +163,7 @@ public class Grammar {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for (ArrayList<Rule> ruleList: rules) {
+        for (ArrayList<Rule> ruleList : rules) {
             for (Rule r : ruleList) {
                 sb.append(r.toString());
                 sb.append("\n");
@@ -161,15 +178,14 @@ public class Grammar {
 
     public void compile() {
         LALR lalr = LALR.generateLALRTables(this);
-        System.out.println(lalr.toString());
+        //System.out.println(lalr.toString());
         table = lalr.getLALRTables();
     }
 
 
-
-    public String parse(InputStreamReader in) throws IOException {
-        LRStack stack = new LRStack(this);
-        stack.push("",0);
+    private LinkedList parseAux(InputStreamReader in) throws IOException {
+        LRStack stack = new LRStack();
+        stack.push("", 0);
         int inp = in.read();
 
         while (true) {
@@ -181,33 +197,73 @@ public class Grammar {
             }
             Integer state = stack.topState();
             Integer nextState = table.GOTO.get(state).get(token);
-            if (nextState!=null) {
-                stack.push(token, nextState);
+            if (nextState != null) {
+                stack.push(getSymbolFromID(token).toString(), nextState);
                 inp = in.read();
             } else {
                 ArrayList<Rule> rls = table.ACTION.get(state).get(token);
                 if (rls == null || rls.isEmpty()) {
                     in.close();
-                    throw new ParsingException("Parsing failed: not expecting "+(char)inp);
+                    throw new ParsingException("Parsing failed: not expecting " + (char) inp);
                 } else {
                     Rule rl = rls.get(0);
                     int X = rl.getLHS();
                     int len = rl.getRHS().length();
-                    String mod = stack.popn(len);
-                    mod = LRStack.LB + " " + getSymbolFromID(X)+ " "+mod + " "+LRStack.RB;
+                    LinkedList processed = stack.popn(len);
+                    if (!getHiddenFromID(X)) {
+                        processed.addFirst(" ");
+                        processed.addFirst(getSymbolFromID(X));
+                        processed.addFirst(LB);
+                        processed.addLast(RB);
+                    }
                     if (X == startNonTerminal) {
                         if ((inp = in.read()) != -1) {
                             in.close();
-                            throw new ParsingException("Parsing failed: more characters left "+(char)inp);
+                            throw new ParsingException("Parsing failed: more characters left " + (char) inp);
                         } else {
                             in.close();
-                            return mod;
+                            return processed;
                         }
                     }
-                    stack.push(mod, table.GOTO.get(stack.topState()).get(X));
+                    stack.push(processed, table.GOTO.get(stack.topState()).get(X));
                 }
             }
         }
+    }
+
+    public String parse(InputStreamReader in) throws IOException {
+        LinkedList ast = parseAux(in);
+        LinkedList dfs = new LinkedList();
+        String prev = "";
+        StringBuilder sb = new StringBuilder();
+        dfs.addFirst(ast);
+        while(!dfs.isEmpty()) {
+            Object node = dfs.removeFirst();
+            if (node instanceof LinkedList) {
+                Collections.reverse((LinkedList)node);
+                for(Object child: (LinkedList)node) {
+                    dfs.addFirst(child);
+                }
+            } else {
+                String tmp = prev + node;
+                if (tmp.equals(LB) || tmp.equals(RB)) {
+                    sb.append(LB);
+                    sb.append(prev);
+                    prev = "";
+                } else {
+                    sb.append(prev);
+                    prev = node.toString();
+                }
+            }
+        }
+        if (!prev.equals("")) {
+            sb.append(prev);
+        }
+        return sb.toString();
+    }
+
+    public String parse(String inp) throws IOException {
+        return parse(new InputStreamReader(new ByteArrayInputStream(inp.getBytes())));
     }
 
 }

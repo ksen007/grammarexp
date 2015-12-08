@@ -2,9 +2,6 @@ package edu.berkeley.grammarexp.parser;
 
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStreamReader;
-
 import static junit.framework.TestCase.assertEquals;
 
 /**
@@ -386,7 +383,7 @@ public class GrammarTest {
         Grammar g = new Grammar();
 
         int S = g.getNonTerminalID("S");
-        int V = g.getNonTerminalID("V");
+        int V = g.getNonTerminalID("V", true);
         int E = g.getNonTerminalID("E");
 
         g.addProduction(S, V, "=", E);
@@ -397,7 +394,8 @@ public class GrammarTest {
 
         g.compile();
         String inp = "x=**x";
-        String out = g.parse(new InputStreamReader(new ByteArrayInputStream(inp.getBytes())));
-        System.out.println(out);
+        String expected = "{{S x={{E *{{E *{{E x}}}}}}}}";
+        String out = g.parse(inp);
+        assertEquals(expected, out);
     }
 }

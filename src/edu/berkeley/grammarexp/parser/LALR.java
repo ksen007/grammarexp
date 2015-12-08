@@ -193,6 +193,29 @@ public class LALR {
                         actions.put(symbol, rules);
                     }
                     rules.add(item.rule);
+                    Integer next = GOTO.get(state).get(symbol);
+                    if (next != null) {
+                        ItemSet is = states.get(state);
+                        System.err.println("At state "+state);
+                        System.err.println("Shift-reduce conflict detected: Symbol "+g.getSymbolFromID(symbol));
+
+                        Map<Item,Integer> sItems = is.getItems();
+                        for (Item sItem: sItems.keySet()) {
+                            if (sItem.getSymbolUnderDot() == symbol) {
+                                System.err.println("  Rule "+sItem);
+                            }
+                        }
+                        for(Rule tr: rules) {
+                            System.err.println("  Rule "+tr);
+                        }
+                    }
+                    if (rules.size()>1) {
+                        System.err.println("At state "+state);
+                        System.err.println("Reduce-reduce conflict detected: Symbol "+g.getSymbolFromID(symbol));
+                        for(Rule tr: rules) {
+                            System.err.println("  Rule "+tr);
+                        }
+                    }
                 }
             }
 
