@@ -41,7 +41,7 @@ public class Grammar {
         rules = new ArrayList<ArrayList<Rule>>();
     }
 
-    public int getNonTerminalID(Object name, boolean hidden) {
+    private int getNonTerminalID(Object name, boolean hidden) {
         int start = 0;
         boolean localInit = false;
         if (!isInit) {
@@ -71,12 +71,17 @@ public class Grammar {
         return getNonTerminalID(name, false);
     }
 
-    public int getTerminalID(Object name) {
+    public int getHiddenNonTerminalID(Object name) {
+        return getNonTerminalID(name, true);
+    }
+
+    private int getTerminalID(Object name, boolean isHidden) {
         Integer id = terminalsToId.get(name);
         if (id != null) {
             return id;
         }
-        int ret = -terminals.size() * 2 - 2;
+        int offset = isHidden? 1: 2;
+        int ret = -terminals.size() * 3 - offset;
         terminals.add(name);
         terminalsToId.put(name, ret);
         return ret;
@@ -84,8 +89,17 @@ public class Grammar {
 
     public int getTerminalID(char ch) {
         assert ch >= 0;
-        return -ch * 2 - 1;
+        return -ch * 3;
     }
+
+    public int getTerminalID(Object name) {
+        return getTerminalID(name, true);
+    }
+
+    public int getVisibleTerminalID(Object name) {
+        return getTerminalID(name, false);
+    }
+
 
     public Rule getStartRule() {
         return startRule;
@@ -98,10 +112,10 @@ public class Grammar {
     public Object getSymbolFromID(int id) {
         if (isTerminal(id)) {
             id = -id;
-            if (id % 2 == 0) {
-                return terminals.get(id / 2 - 1);
+            if (id % 3 == 0) {
+                return new Character((char) (id / 3));
             } else {
-                return new Character((char) (id / 2));
+                return terminals.get(id / 3);
             }
         } else {
             return nonTerminals.get(id);
@@ -111,7 +125,7 @@ public class Grammar {
     public boolean getHiddenFromID(int id) {
         if (isTerminal(id)) {
             id = -id;
-            return true;
+            return !(id % 3 == 2);
         } else {
             return isHiddenNonTerminals.get(id);
         }
@@ -122,7 +136,7 @@ public class Grammar {
     }
 
     public boolean isTerminalCharacter(int id) {
-        return id < 0 && (-id) % 2 == 1;
+        return id < 0 && (-id) % 3 == 0;
     }
 
     private void addRule(Rule rule) {
@@ -183,28 +197,23 @@ public class Grammar {
     }
 
 
-    private LinkedList parseAux(InputStreamReader in) throws IOException {
+    private LinkedList parseAux(Scanner scanner) throws IOException {
         LRStack stack = new LRStack();
         stack.push("", 0);
-        int inp = in.read();
+        int token;
+        token = scanner.nextToken();
 
         while (true) {
-            int token;
-            if (inp == -1) {
-                token = endToken;
-            } else {
-                token = getTerminalID((char) inp);
-            }
             Integer state = stack.topState();
             Integer nextState = table.GOTO.get(state).get(token);
             if (nextState != null) {
-                stack.push(getSymbolFromID(token).toString(), nextState);
-                inp = in.read();
+                stack.push(scanner.tokenValue.toString(), nextState);
+                token = scanner.nextToken();
             } else {
                 ArrayList<Rule> rls = table.ACTION.get(state).get(token);
                 if (rls == null || rls.isEmpty()) {
-                    in.close();
-                    throw new ParsingException("Parsing failed: not expecting " + (char) inp);
+                    scanner.close();
+                    throw new ParsingException("Parsing failed: not expecting " + scanner.tokenValue);
                 } else {
                     Rule rl = rls.get(0);
                     int X = rl.getLHS();
@@ -217,11 +226,11 @@ public class Grammar {
                         processed.addLast(RB);
                     }
                     if (X == startNonTerminal) {
-                        if ((inp = in.read()) != -1) {
-                            in.close();
-                            throw new ParsingException("Parsing failed: more characters left " + (char) inp);
+                        if ((token = scanner.nextToken()) != endToken) {
+                            scanner.close();
+                            throw new ParsingException("Parsing failed: more characters left " + scanner.tokenValue);
                         } else {
-                            in.close();
+                            scanner.close();
                             return processed;
                         }
                     }
@@ -231,8 +240,8 @@ public class Grammar {
         }
     }
 
-    public String parse(InputStreamReader in) throws IOException {
-        LinkedList ast = parseAux(in);
+    public String parse(Scanner scanner) throws IOException {
+        LinkedList ast = parseAux(scanner);
         LinkedList dfs = new LinkedList();
         String prev = "";
         StringBuilder sb = new StringBuilder();
@@ -263,7 +272,7 @@ public class Grammar {
     }
 
     public String parse(String inp) throws IOException {
-        return parse(new InputStreamReader(new ByteArrayInputStream(inp.getBytes())));
+        return parse(new CharStreamScanner(this, new InputStreamReader(new ByteArrayInputStream(inp.getBytes()))));
     }
 
 }

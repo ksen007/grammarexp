@@ -383,7 +383,7 @@ public class GrammarTest {
         Grammar g = new Grammar();
 
         int S = g.getNonTerminalID("S");
-        int V = g.getNonTerminalID("V", true);
+        int V = g.getHiddenNonTerminalID("V");
         int E = g.getNonTerminalID("E");
 
         g.addProduction(S, V, "=", E);
@@ -398,4 +398,27 @@ public class GrammarTest {
         String out = g.parse(inp);
         assertEquals(expected, out);
     }
+
+    @Test
+    public void testTerminal1() throws Exception {
+        Grammar g = new Grammar();
+        int idx = g.getTerminalID(new Token("x"));
+        int idy = g.getTerminalID(new Token("y"));
+        int idz = g.getTerminalID('c');
+        assertEquals("x", g.getSymbolFromID(idx).toString());
+        assertEquals("y", g.getSymbolFromID(idy).toString());
+        assertEquals("c", g.getSymbolFromID(idz).toString());
+    }
+
+    @Test
+    public void testTerminal2() throws Exception {
+        Grammar g = new Grammar();
+        int idx = g.getTerminalID(new Token("x"));
+        int idy = g.getVisibleTerminalID(new Token("y"));
+        int idz = g.getTerminalID('c');
+        assertEquals(true, g.getHiddenFromID(idx));
+        assertEquals(false, g.getHiddenFromID(idy));
+        assertEquals(true, g.getHiddenFromID(idz));
+    }
+
 }
