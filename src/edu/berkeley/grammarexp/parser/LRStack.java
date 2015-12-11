@@ -14,7 +14,8 @@ public class LRStack extends ArrayList {
         return (Integer)this.get(this.size() - 1);
     }
 
-    public void push(Object subtree, Integer state) {
+    public void push(int ID, Object subtree, Integer state) {
+        this.add(ID);
         this.add(subtree);
         this.add(state);
     }
@@ -23,12 +24,15 @@ public class LRStack extends ArrayList {
         LinkedList sb = new LinkedList();
         int len = size();
         Object top;
+        Integer id;
 
         for(int i=n-1; i>=0; i--) {
-            top = get(len-2*i-2);
+            id = (Integer) get(len-3*i-3);
+            top = get(len-3*i-2);
+            sb.addLast(id);
             sb.addLast(top);
         }
-        removeRange(len-2*n, len);
+        removeRange(len-3*n, len);
         return sb;
     }
 

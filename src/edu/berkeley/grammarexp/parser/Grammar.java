@@ -199,7 +199,7 @@ public class Grammar {
 
     private LinkedList parseAux(Scanner scanner) throws IOException {
         LRStack stack = new LRStack();
-        stack.push("", 0);
+        stack.push(0, "", 0);
         int token;
         token = scanner.nextToken();
 
@@ -207,7 +207,7 @@ public class Grammar {
             Integer state = stack.topState();
             Integer nextState = table.GOTO.get(state).get(token);
             if (nextState != null) {
-                stack.push(scanner.tokenValue.toString(), nextState);
+                stack.push(scanner.tokenID, scanner.tokenValue, nextState);
                 token = scanner.nextToken();
             } else {
                 ArrayList<Rule> rls = table.ACTION.get(state).get(token);
@@ -219,12 +219,6 @@ public class Grammar {
                     int X = rl.getLHS();
                     int len = rl.getRHS().length();
                     LinkedList processed = stack.popn(len);
-                    if (!getHiddenFromID(X)) {
-                        processed.addFirst(" ");
-                        processed.addFirst(getSymbolFromID(X));
-                        processed.addFirst(LB);
-                        processed.addLast(RB);
-                    }
                     if (X == startNonTerminal) {
                         if ((token = scanner.nextToken()) != endToken) {
                             scanner.close();
@@ -234,7 +228,7 @@ public class Grammar {
                             return processed;
                         }
                     }
-                    stack.push(processed, table.GOTO.get(stack.topState()).get(X));
+                    stack.push(X, processed, table.GOTO.get(stack.topState()).get(X));
                 }
             }
         }
@@ -246,7 +240,9 @@ public class Grammar {
         String prev = "";
         StringBuilder sb = new StringBuilder();
         dfs.addFirst(ast);
+        dfs.addFirst(startNonTerminal);
         while(!dfs.isEmpty()) {
+            Integer ID = (Integer)dfs.removeFirst();
             Object node = dfs.removeFirst();
             if (node instanceof LinkedList) {
                 Collections.reverse((LinkedList)node);
