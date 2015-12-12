@@ -406,8 +406,9 @@ public class GrammarTest {
         int E = g.getNonTerminalID("E");
         int apply = g.getTerminalID(new Token("apply"));
 
-        g.addPrecedence("x", false);
-        g.addPrecedenceAsPrevious("(", true);
+        g.addPrecedence("x", true, false);
+        g.addPrecedenceAsPrevious("(", true, false);
+        g.addPrecedence(apply, true, false);
 
         Rule r = g.addProduction(E, E, E);
         g.addProduction(E, "(x)", E);
@@ -453,14 +454,14 @@ public class GrammarTest {
         int N = g.getHiddenNonTerminalID("number");
         int D = g.getHiddenNonTerminalID("digit");
 
-        g.addPrecedence("+", false);
-        g.addPrecedenceAsPrevious("-", false);
-        g.addPrecedence("*", false);
-        g.addPrecedenceAsPrevious("/", false);
-
+        g.addPrecedence("+", true, false);
+        g.addPrecedenceAsPrevious("-", true, false);
+        g.addPrecedence("*", true, false);
+        g.addPrecedenceAsPrevious("/", true, false);
         int uminus = g.getTerminalID(new Token("-"));
+        g.addPrecedenceAsPrevious(uminus, false, false);
 
-        g.addProduction(E,N);
+        g.addProductionHidden(E, N);
         g.addProduction(E, E, "+", E);
         g.addProduction(E, E, "-", E);
         g.addProduction(E, E, "*", E);
@@ -478,7 +479,9 @@ public class GrammarTest {
         g.compile();
 
         String inp = "1+2*6/2+3";
-        System.out.println(g.parse(inp));
+        String expected = "{{expr {{expr 1+{{expr {{expr 2*6}}/2}}}}+3}}";
+        String out = g.parse(inp);
+        assertEquals(expected, out);
    }
 
     @Test

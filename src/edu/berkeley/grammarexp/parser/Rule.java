@@ -10,12 +10,14 @@ public class Rule {
     private RuleRHS rhs;
     protected Grammar g;
     private int ID;
+    private boolean isVisible;
 
-    public Rule(int lhs, RuleRHS rhs, int id, Grammar g) {
+    public Rule(int lhs, RuleRHS rhs, int id, boolean isVisible, Grammar g) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.g = g;
         this.ID = id;
+        this.isVisible = isVisible;
     }
 
     @Override
@@ -54,5 +56,13 @@ public class Rule {
 
     public Precedence getPrecedence() {
         return rhs.getPrecedence();
+    }
+
+    public boolean isVisible() {
+        return isVisible;
+    }
+
+    public void setVisible(boolean isVisible) {
+        this.isVisible = isVisible;
     }
 }

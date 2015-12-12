@@ -179,6 +179,34 @@ public class LALR {
         }
     }
 
+    private void reportShiftReduceConflict(int state, int symbol, ArrayList<Rule> rules) {
+        ItemSet is = states.get(state);
+        System.err.println("At state "+state);
+        System.err.println("Shift-reduce conflict detected: Symbol "+g.getSymbolFromID(symbol));
+
+        Map<Item,Integer> sItems = is.getItems();
+        for (Item sItem: sItems.keySet()) {
+            if (!sItem.isDotAtEnd() && sItem.getSymbolUnderDot() == symbol) {
+                System.err.println("  Rule "+sItem);
+            }
+        }
+        for(Rule tr: rules) {
+            System.err.println("  Rule "+tr);
+        }
+
+    }
+
+
+    private void reportReduceReduceConflict(int state, int symbol, ArrayList<Rule> rules) {
+        if (rules.size() > 1) {
+            System.err.println("At state " + state);
+            System.err.println("Reduce-reduce conflict detected: Symbol " + g.getSymbolFromID(symbol));
+            for (Rule tr : rules) {
+                System.err.println("  Rule " + tr);
+            }
+        }
+    }
+
     private void createActionTable() {
         int i = 0;
         for (Item item : kernelItems) {
@@ -195,47 +223,30 @@ public class LALR {
                     rules.add(item.rule);
                     Integer next = GOTO.get(state).get(symbol);
                     if (next != null) {
-                        ItemSet is = states.get(state);
-                        System.err.println("At state "+state);
-                        System.err.println("Shift-reduce conflict detected: Symbol "+g.getSymbolFromID(symbol));
-
-                        Map<Item,Integer> sItems = is.getItems();
-                        for (Item sItem: sItems.keySet()) {
-                            if (!sItem.isDotAtEnd() && sItem.getSymbolUnderDot() == symbol) {
-                                System.err.println("  Rule "+sItem);
-                            }
-                        }
-                        Rule reduce = null;
-                        for(Rule tr: rules) {
-                            if (reduce == null) {
-                                reduce = tr;
-                            }
-                            System.err.println("  Rule "+tr);
-                        }
+                        Rule reduce = rules.get(0);
                         Precedence rulePrecedence = reduce.getPrecedence();
                         Precedence symPrecedence = g.getPrecedence(symbol);
                         if (rulePrecedence != null && symPrecedence != null) {
                             if (rulePrecedence.precedence > symPrecedence.precedence) {
-                                System.err.println("Resolving to reduce");
+                                System.out.println("Resolving to reduce");
                                 GOTO.get(state).remove(symbol);
-                            } else if (rulePrecedence.precedence == symPrecedence.precedence && !symPrecedence.rightAssociative) {
-                                System.err.println("Resolving to reduce");
+                            } else if (rulePrecedence.precedence == symPrecedence.precedence && symPrecedence.isAssociative && !symPrecedence.rightAssociative) {
+                                System.out.println("Resolving to reduce");
                                 GOTO.get(state).remove(symbol);
+                            } else if (rulePrecedence.precedence == symPrecedence.precedence && !symPrecedence.isAssociative) {
+                                reportShiftReduceConflict(state, symbol, rules);
+                                System.err.println("Cannot resolve shift-reduce conflict due to non-associativity of "+g.getSymbolFromID(symbol));
+                                throw new RuntimeException("Cannot resolve shift-reduce conflict due to non-associativity of "+g.getSymbolFromID(symbol));
                             } else {
-                                System.err.println("Resolving to shift");
+                                System.out.println("Resolving to shift");
                             }
+                        } else {
+                            reportShiftReduceConflict(state, symbol, rules);
                         }
                     }
-                    if (rules.size()>1) {
-                        System.err.println("At state "+state);
-                        System.err.println("Reduce-reduce conflict detected: Symbol "+g.getSymbolFromID(symbol));
-                        for(Rule tr: rules) {
-                            System.err.println("  Rule "+tr);
-                        }
-                    }
+                    reportReduceReduceConflict(state, symbol, rules);
                 }
             }
-
             i++;
         }
     }

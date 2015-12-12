@@ -13,12 +13,15 @@ import java.util.*;
 
 class Precedence {
     int precedence;
+    boolean isAssociative;
     boolean rightAssociative;
 
-    public Precedence(int precedence, boolean rightAssociative) {
+    public Precedence(int precedence, boolean isAssociative, boolean rightAssociative) {
         this.precedence = precedence;
+        this.isAssociative = isAssociative;
         this.rightAssociative = rightAssociative;
     }
+
 }
 
 public class Grammar {
@@ -51,7 +54,7 @@ public class Grammar {
         terminals = new ArrayList();
         terminalsToId = new HashMap<Object, Integer>();
         rules = new ArrayList<ArrayList<Rule>>();
-        precedence= new HashMap<Integer, Precedence>();
+        precedence = new HashMap<Integer, Precedence>();
     }
 
     private int getNonTerminalID(Object name, boolean hidden) {
@@ -93,7 +96,7 @@ public class Grammar {
         if (id != null) {
             return id;
         }
-        int offset = isHidden? 1: 2;
+        int offset = isHidden ? 1 : 2;
         int ret = -terminals.size() * 3 - offset;
         terminals.add(name);
         terminalsToId.put(name, ret);
@@ -160,23 +163,23 @@ public class Grammar {
 
     int prec = 0;
 
-    public void addPrecedenceAsPrevious(int terminalId, boolean isRight) {
-        precedence.put(terminalId, new Precedence(prec, isRight));
+    public void addPrecedenceAsPrevious(int terminalId, boolean isAssociative, boolean isRight) {
+        precedence.put(terminalId, new Precedence(prec, isAssociative, isRight));
     }
 
-    public void addPrecedence(int terminalId, boolean isRight) {
+    public void addPrecedence(int terminalId, boolean isAssociative, boolean isRight) {
         prec++;
-        addPrecedenceAsPrevious(terminalId, isRight);
+        addPrecedenceAsPrevious(terminalId, isAssociative, isRight);
     }
 
-    public void addPrecedenceAsPrevious(String token, boolean isRight) {
+    public void addPrecedenceAsPrevious(String token, boolean isAssociative, boolean isRight) {
         if (token.length() != 1) throw new RuntimeException("Token must have one character");
-        precedence.put(getTerminalID(token.charAt(0)), new Precedence(prec, isRight));
+        precedence.put(getTerminalID(token.charAt(0)), new Precedence(prec, isAssociative, isRight));
     }
 
-    public void addPrecedence(String token, boolean isRight) {
+    public void addPrecedence(String token, boolean isAssociative, boolean isRight) {
         prec++;
-        addPrecedenceAsPrevious(token, isRight);
+        addPrecedenceAsPrevious(token, isAssociative, isRight);
     }
 
     public void addPrecedenceSameAs(Rule rule, int terminalID) {
@@ -196,7 +199,7 @@ public class Grammar {
             } else if (symbols[i] instanceof Integer) {
                 nsyms++;
             } else {
-                throw new RuntimeException("Unknown symbolc type in addProduction: " + symbols[i]);
+                throw new RuntimeException("Unknown symbolic type in addProduction: " + symbols[i]);
             }
         }
         RuleRHS ret = new RuleRHS(nsyms, this);
@@ -208,12 +211,25 @@ public class Grammar {
             } else if (symbols[i] instanceof Integer) {
                 ret.addSymbol(((Integer) symbols[i]).intValue());
             } else {
-                throw new RuntimeException("Unknown symbolc type in addProduction: " + symbols[i]);
+                throw new RuntimeException("Unknown symbolic type in addProduction: " + symbols[i]);
             }
         }
-        addRule(ret2 = new Rule(lhs, ret, nRules, this));
+        addRule(ret2 = new Rule(lhs, ret, nRules, !getHiddenFromID(lhs), this));
         nRules++;
         return ret2;
+    }
+
+
+    public Rule addProductionVisible(int lhs, Object... symbols) {
+        Rule ret = addProduction(lhs, symbols);
+        ret.setVisible(true);
+        return ret;
+    }
+
+    public Rule addProductionHidden(int lhs, Object... symbols) {
+        Rule ret = addProduction(lhs, symbols);
+        ret.setVisible(false);
+        return ret;
     }
 
     @Override
@@ -239,9 +255,9 @@ public class Grammar {
     }
 
 
-    private LinkedList parseAux(Scanner scanner) throws IOException {
+    private ASTNode parseAux(Scanner scanner) throws IOException {
         LRStack stack = new LRStack();
-        stack.push(0, "", 0);
+        stack.push(new ASTNodeLeaf(0, "", false), 0);
         int token;
         token = scanner.nextToken();
 
@@ -249,7 +265,7 @@ public class Grammar {
             Integer state = stack.topState();
             Integer nextState = table.GOTO.get(state).get(token);
             if (nextState != null) {
-                stack.push(scanner.tokenID, scanner.tokenValue, nextState);
+                stack.push(new ASTNodeLeaf(scanner.tokenID, scanner.tokenValue, getHiddenFromID(scanner.tokenID)), nextState);
                 token = scanner.nextToken();
             } else {
                 ArrayList<Rule> rls = table.ACTION.get(state).get(token);
@@ -260,7 +276,7 @@ public class Grammar {
                     Rule rl = rls.get(0);
                     int X = rl.getLHS();
                     int len = rl.getRHS().length();
-                    LinkedList processed = stack.popn(len);
+                    ASTNodeInternal processed = stack.popn(len, X, rl.isVisible());
                     if (X == startNonTerminal) {
                         if ((token = scanner.nextToken()) != endToken) {
                             scanner.close();
@@ -270,40 +286,39 @@ public class Grammar {
                             return processed;
                         }
                     }
-                    stack.push(X, processed, table.GOTO.get(stack.topState()).get(X));
+                    stack.push(processed, table.GOTO.get(stack.topState()).get(X));
                 }
             }
         }
     }
 
     public String parse(Scanner scanner) throws IOException {
-        LinkedList ast = parseAux(scanner);
+        ASTNode ast = parseAux(scanner);
         LinkedList dfs = new LinkedList();
         String prev = "";
         StringBuilder sb = new StringBuilder();
         dfs.addFirst(ast);
-        dfs.addFirst(startNonTerminal);
-        while(!dfs.isEmpty()) {
+        while (!dfs.isEmpty()) {
             Object e = dfs.removeFirst();
             if (e instanceof String) {
                 sb.append(e);
             } else {
-                Integer ID = (Integer) e;
-                Object node = dfs.removeFirst();
-                if (node instanceof LinkedList) {
-                    Collections.reverse((LinkedList) node);
-                    if (!getHiddenFromID(ID)) {
+                ASTNode node = (ASTNode)e;
+                if (!node.isLeaf()) {
+                    LinkedList<ASTNode> children = new LinkedList<ASTNode>(node.getChildren());
+                    Collections.reverse(children);
+                    if (node.isVisible) {
                         dfs.addFirst(RB);
                     }
-                    for (Object child : (LinkedList) node) {
+                    for (ASTNode child : children) {
                         dfs.addFirst(child);
                     }
-                    if (!getHiddenFromID(ID)) {
-                        dfs.addFirst(getSymbolFromID(ID).toString()+" ");
+                    if (node.isVisible) {
+                        dfs.addFirst(getSymbolFromID(node.ID).toString() + " ");
                         dfs.addFirst(LB);
                     }
                 } else {
-                    sb.append(node);
+                    sb.append(node.getValue().toString());
 //                    String tmp = prev + node;
 //                    if (tmp.equals(LB) || tmp.equals(RB)) {
 //                        sb.append(LB);

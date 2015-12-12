@@ -1,7 +1,6 @@
 package edu.berkeley.grammarexp.parser;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 /**
  * Author: Koushik Sen (ksen@cs.berkeley.edu)
@@ -14,26 +13,22 @@ public class LRStack extends ArrayList {
         return (Integer)this.get(this.size() - 1);
     }
 
-    public void push(int ID, Object subtree, Integer state) {
-        this.add(ID);
-        this.add(subtree);
+    public void push(ASTNode node, Integer state) {
+        this.add(node);
         this.add(state);
     }
 
-    public LinkedList popn(int n) {
-        LinkedList sb = new LinkedList();
+    public ASTNodeInternal popn(int n, int ID, boolean isVisible) {
+        ASTNodeInternal ret = new ASTNodeInternal(ID, isVisible);
         int len = size();
-        Object top;
-        Integer id;
+        ASTNode top;
 
         for(int i=n-1; i>=0; i--) {
-            id = (Integer) get(len-3*i-3);
-            top = get(len-3*i-2);
-            sb.addLast(id);
-            sb.addLast(top);
+            top = (ASTNode) get(len-2*i-2);
+            ret.addNode(top);
         }
-        removeRange(len-3*n, len);
-        return sb;
+        removeRange(len-2*n, len);
+        return ret;
     }
 
 }
