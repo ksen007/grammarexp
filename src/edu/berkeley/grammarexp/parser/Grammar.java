@@ -160,22 +160,27 @@ public class Grammar {
 
     int prec = 0;
 
-    public void addPrecedenceAsPrevious(Rule rule, boolean isRight) {
-        rule.getRHS().setPrecendence(new Precedence(prec, isRight));
-    }
-
     public void addPrecedenceAsPrevious(int terminalId, boolean isRight) {
         precedence.put(terminalId, new Precedence(prec, isRight));
-    }
-
-    public void addPrecedence(Rule rule, boolean isRight) {
-        prec++;
-        addPrecedenceAsPrevious(rule, isRight);
     }
 
     public void addPrecedence(int terminalId, boolean isRight) {
         prec++;
         addPrecedenceAsPrevious(terminalId, isRight);
+    }
+
+    public void addPrecedenceAsPrevious(String token, boolean isRight) {
+        if (token.length() != 1) throw new RuntimeException("Token must have one character");
+        precedence.put(getTerminalID(token.charAt(0)), new Precedence(prec, isRight));
+    }
+
+    public void addPrecedence(String token, boolean isRight) {
+        prec++;
+        addPrecedenceAsPrevious(token, isRight);
+    }
+
+    public void addPrecedenceSameAs(Rule rule, int terminalID) {
+        rule.getRHS().setPrecendence(getPrecedence(terminalID));
     }
 
     public Precedence getPrecedence(int terminalId) {

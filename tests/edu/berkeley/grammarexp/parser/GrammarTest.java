@@ -404,14 +404,17 @@ public class GrammarTest {
         Grammar g = new Grammar();
 
         int E = g.getNonTerminalID("E");
+        int apply = g.getTerminalID(new Token("apply"));
+
+        g.addPrecedence("x", false);
+        g.addPrecedenceAsPrevious("(", true);
 
         Rule r = g.addProduction(E, E, E);
         g.addProduction(E, "(x)", E);
         g.addProduction(E, "x");
 
-        g.addPrecedence(g.getTerminalID('x'), false);
-        g.addPrecedenceAsPrevious(g.getTerminalID('('), true);
-        g.addPrecedence(r, true);
+
+        g.addPrecedenceSameAs(r, apply);
 
         g.compile();
         String inp = "(x)x(x)x";
@@ -450,10 +453,12 @@ public class GrammarTest {
         int N = g.getHiddenNonTerminalID("number");
         int D = g.getHiddenNonTerminalID("digit");
 
-        g.addPrecedence(g.getTerminalID('+'), false);
-        g.addPrecedenceAsPrevious(g.getTerminalID('-'), false);
-        g.addPrecedence(g.getTerminalID('*'), false);
-        g.addPrecedenceAsPrevious(g.getTerminalID('/'), false);
+        g.addPrecedence("+", false);
+        g.addPrecedenceAsPrevious("-", false);
+        g.addPrecedence("*", false);
+        g.addPrecedenceAsPrevious("/", false);
+
+        int uminus = g.getTerminalID(new Token("-"));
 
         g.addProduction(E,N);
         g.addProduction(E, E, "+", E);
@@ -461,14 +466,14 @@ public class GrammarTest {
         g.addProduction(E, E, "*", E);
         g.addProduction(E, E, "/", E);
         g.addProduction(E, "(", E, ")");
-        Rule uminus = g.addProduction(E, "-", E);
+        Rule r = g.addProduction(E, "-", E);
         g.addProduction(N, N, D);
         g.addProduction(N, D);
         for (int i=0; i<10; i++) {
             g.addProduction(D, ((char)('0'+i))+"");
         }
 
-        g.addPrecedence(uminus, true);
+        g.addPrecedenceSameAs(r, uminus);
 
         g.compile();
 
