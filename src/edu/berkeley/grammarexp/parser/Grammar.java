@@ -11,6 +11,16 @@ import java.util.*;
  * Time: 2:54 PM
  */
 
+class Precedence {
+    int precedence;
+    boolean rightAssociative;
+
+    public Precedence(int precedence, boolean rightAssociative) {
+        this.precedence = precedence;
+        this.rightAssociative = rightAssociative;
+    }
+}
+
 public class Grammar {
     final public static String LB = "{{";
     final public static String RB = "}}";
@@ -21,6 +31,8 @@ public class Grammar {
 
     private ArrayList terminals;
     private HashMap<Object, Integer> terminalsToId;
+    private HashMap<Integer, Precedence> precedence;
+
 
     private int nRules = 0;
 
@@ -39,6 +51,7 @@ public class Grammar {
         terminals = new ArrayList();
         terminalsToId = new HashMap<Object, Integer>();
         rules = new ArrayList<ArrayList<Rule>>();
+        precedence= new HashMap<Integer, Precedence>();
     }
 
     private int getNonTerminalID(Object name, boolean hidden) {
@@ -145,6 +158,30 @@ public class Grammar {
         ruleList.add(rule);
     }
 
+    int prec = 0;
+
+    public void addPrecedenceAsPrevious(Rule rule, boolean isRight) {
+        rule.getRHS().setPrecendence(new Precedence(prec, isRight));
+    }
+
+    public void addPrecedenceAsPrevious(int terminalId, boolean isRight) {
+        precedence.put(terminalId, new Precedence(prec, isRight));
+    }
+
+    public void addPrecedence(Rule rule, boolean isRight) {
+        prec++;
+        addPrecedenceAsPrevious(rule, isRight);
+    }
+
+    public void addPrecedence(int terminalId, boolean isRight) {
+        prec++;
+        addPrecedenceAsPrevious(terminalId, isRight);
+    }
+
+    public Precedence getPrecedence(int terminalId) {
+        return precedence.get(terminalId);
+    }
+
     public Rule addProduction(int lhs, Object... symbols) {
         int len = symbols.length, nsyms = 0, i;
         Rule ret2;
@@ -242,22 +279,35 @@ public class Grammar {
         dfs.addFirst(ast);
         dfs.addFirst(startNonTerminal);
         while(!dfs.isEmpty()) {
-            Integer ID = (Integer)dfs.removeFirst();
-            Object node = dfs.removeFirst();
-            if (node instanceof LinkedList) {
-                Collections.reverse((LinkedList)node);
-                for(Object child: (LinkedList)node) {
-                    dfs.addFirst(child);
-                }
+            Object e = dfs.removeFirst();
+            if (e instanceof String) {
+                sb.append(e);
             } else {
-                String tmp = prev + node;
-                if (tmp.equals(LB) || tmp.equals(RB)) {
-                    sb.append(LB);
-                    sb.append(prev);
-                    prev = "";
+                Integer ID = (Integer) e;
+                Object node = dfs.removeFirst();
+                if (node instanceof LinkedList) {
+                    Collections.reverse((LinkedList) node);
+                    if (!getHiddenFromID(ID)) {
+                        dfs.addFirst(RB);
+                    }
+                    for (Object child : (LinkedList) node) {
+                        dfs.addFirst(child);
+                    }
+                    if (!getHiddenFromID(ID)) {
+                        dfs.addFirst(getSymbolFromID(ID).toString()+" ");
+                        dfs.addFirst(LB);
+                    }
                 } else {
-                    sb.append(prev);
-                    prev = node.toString();
+                    sb.append(node);
+//                    String tmp = prev + node;
+//                    if (tmp.equals(LB) || tmp.equals(RB)) {
+//                        sb.append(LB);
+//                        sb.append(prev);
+//                        prev = "";
+//                    } else {
+//                        sb.append(prev);
+//                        prev = node.toString();
+//                    }
                 }
             }
         }

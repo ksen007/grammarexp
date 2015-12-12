@@ -201,12 +201,29 @@ public class LALR {
 
                         Map<Item,Integer> sItems = is.getItems();
                         for (Item sItem: sItems.keySet()) {
-                            if (sItem.getSymbolUnderDot() == symbol) {
+                            if (!sItem.isDotAtEnd() && sItem.getSymbolUnderDot() == symbol) {
                                 System.err.println("  Rule "+sItem);
                             }
                         }
+                        Rule reduce = null;
                         for(Rule tr: rules) {
+                            if (reduce == null) {
+                                reduce = tr;
+                            }
                             System.err.println("  Rule "+tr);
+                        }
+                        Precedence rulePrecedence = reduce.getPrecedence();
+                        Precedence symPrecedence = g.getPrecedence(symbol);
+                        if (rulePrecedence != null && symPrecedence != null) {
+                            if (rulePrecedence.precedence > symPrecedence.precedence) {
+                                System.err.println("Resolving to reduce");
+                                GOTO.get(state).remove(symbol);
+                            } else if (rulePrecedence.precedence == symPrecedence.precedence && !symPrecedence.rightAssociative) {
+                                System.err.println("Resolving to reduce");
+                                GOTO.get(state).remove(symbol);
+                            } else {
+                                System.err.println("Resolving to shift");
+                            }
                         }
                     }
                     if (rules.size()>1) {

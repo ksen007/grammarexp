@@ -10,6 +10,7 @@ public class RuleRHS {
     private int hashCode = -1;
     private int nexti = 0;
     private Grammar g;
+    private Precedence precedence = null;
 
     public RuleRHS(int size, Grammar g) {
         symbols = new int[size];
@@ -75,6 +76,9 @@ public class RuleRHS {
     public void addSymbol(int symbol) {
         symbols[nexti] = symbol;
         nexti++;
+        if (g.isTerminal(symbol)) {
+            precedence = g.getPrecedence(symbol);
+        }
     }
 
     public int length() {
@@ -83,5 +87,13 @@ public class RuleRHS {
 
     public int get(int i) {
         return symbols[i];
+    }
+
+    public Precedence getPrecedence() {
+        return precedence;
+    }
+
+    public void setPrecendence(Precedence precedence) {
+        this.precedence = precedence;
     }
 }

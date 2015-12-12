@@ -400,6 +400,28 @@ public class GrammarTest {
     }
 
     @Test
+    public void testParse2() throws Exception {
+        Grammar g = new Grammar();
+
+        int E = g.getNonTerminalID("E");
+
+        Rule r = g.addProduction(E, E, E);
+        g.addProduction(E, "(x)", E);
+        g.addProduction(E, "x");
+
+        g.addPrecedence(g.getTerminalID('x'), false);
+        g.addPrecedenceAsPrevious(g.getTerminalID('('), true);
+        g.addPrecedence(r, true);
+
+        g.compile();
+        String inp = "(x)x(x)x";
+        String expected = "{{E (x){{E {{E x}}{{E (x){{E x}}}}}}}}";
+        String out = g.parse(inp);
+        assertEquals(expected, out);
+    }
+
+
+    @Test
     public void testTerminal1() throws Exception {
         Grammar g = new Grammar();
         int idx = g.getTerminalID(new Token("x"));

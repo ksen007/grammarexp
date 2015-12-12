@@ -51,4 +51,8 @@ public class Rule {
     public int getID() {
         return ID;
     }
+
+    public Precedence getPrecedence() {
+        return rhs.getPrecedence();
+    }
 }
