@@ -443,4 +443,55 @@ public class GrammarTest {
         assertEquals(true, g.getHiddenFromID(idz));
     }
 
+    @Test
+    public void testExpr() throws Exception {
+        Grammar g = new Grammar();
+        int E = g.getNonTerminalID("expr");
+        int N = g.getHiddenNonTerminalID("number");
+        int D = g.getHiddenNonTerminalID("digit");
+
+        g.addPrecedence(g.getTerminalID('+'), false);
+        g.addPrecedenceAsPrevious(g.getTerminalID('-'), false);
+        g.addPrecedence(g.getTerminalID('*'), false);
+        g.addPrecedenceAsPrevious(g.getTerminalID('/'), false);
+
+        g.addProduction(E,N);
+        g.addProduction(E, E, "+", E);
+        g.addProduction(E, E, "-", E);
+        g.addProduction(E, E, "*", E);
+        g.addProduction(E, E, "/", E);
+        g.addProduction(E, "(", E, ")");
+        Rule uminus = g.addProduction(E, "-", E);
+        g.addProduction(N, N, D);
+        g.addProduction(N, D);
+        for (int i=0; i<10; i++) {
+            g.addProduction(D, ((char)('0'+i))+"");
+        }
+
+        g.addPrecedence(uminus, true);
+
+        g.compile();
+
+        String inp = "1+2*6/2+3";
+        System.out.println(g.parse(inp));
+   }
+
+    @Test
+    public void testExpr2() throws Exception {
+        Grammar g = new Grammar();
+        int N = g.getHiddenNonTerminalID("number");
+        int D = g.getHiddenNonTerminalID("digit");
+
+        g.addProduction(N, N, D);
+        g.addProduction(N, D);
+        for (int i=0; i<10; i++) {
+            g.addProduction(D, ((char)('0'+i))+"");
+        }
+
+        g.compile();
+
+        String inp = "255";
+        System.out.println(g.parse(inp));
+   }
+
 }
