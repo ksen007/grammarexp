@@ -18,7 +18,7 @@ public class LALR {
     private Grammar g;
     private boolean printItemSets = false;
 
-    private  LALR(ItemSet I0, Grammar g) {
+    private LALR(ItemSet I0, Grammar g) {
         this.g = g;
         itemSetsToStateID = new TreeMap<ItemSet, Integer>();
         GOTO = new ArrayList<TreeMap<Integer, Integer>>();
@@ -181,17 +181,19 @@ public class LALR {
 
     private void reportShiftReduceConflict(int state, int symbol, ArrayList<Rule> rules) {
         ItemSet is = states.get(state);
-        System.err.println("At state "+state);
-        System.err.println("Shift-reduce conflict detected: Symbol "+g.getSymbolFromID(symbol));
+        System.err.println("At state " + state);
+        System.err.println("Shift-reduce conflict detected: Symbol " + g.getSymbolFromID(symbol));
 
-        Map<Item,Integer> sItems = is.getItems();
-        for (Item sItem: sItems.keySet()) {
+        System.err.println("State");
+        Map<Item, Integer> sItems = is.getItems();
+        for (Item sItem : sItems.keySet()) {
             if (!sItem.isDotAtEnd() && sItem.getSymbolUnderDot() == symbol) {
-                System.err.println("  Rule "+sItem);
+                System.err.println("  Rule " + sItem);
             }
         }
-        for(Rule tr: rules) {
-            System.err.println("  Rule "+tr);
+        System.err.println("Rule");
+        for (Rule tr : rules) {
+            System.err.println("  Rule " + tr);
         }
 
     }
@@ -235,9 +237,23 @@ public class LALR {
                                 GOTO.get(state).remove(symbol);
                             } else if (rulePrecedence.precedence == symPrecedence.precedence && !symPrecedence.isAssociative) {
                                 reportShiftReduceConflict(state, symbol, rules);
-                                System.err.println("Cannot resolve shift-reduce conflict due to non-associativity of "+g.getSymbolFromID(symbol));
-                                throw new RuntimeException("Cannot resolve shift-reduce conflict due to non-associativity of "+g.getSymbolFromID(symbol));
+                                System.err.println("Cannot resolve shift-reduce conflict due to non-associativity of " + g.getSymbolFromID(symbol));
+                                throw new RuntimeException("Cannot resolve shift-reduce conflict due to non-associativity of " + g.getSymbolFromID(symbol));
                             } else {
+                                System.out.println("Resolving to shift");
+                            }
+                        } else if (rulePrecedence != null && rulePrecedence.precedence > 0) {
+                            System.out.println("Resolving to reduce");
+                            GOTO.get(state).remove(symbol);
+                        } else if (symPrecedence != null) {
+                            if (symPrecedence.precedence == 0 && symPrecedence.isAssociative && !symPrecedence.rightAssociative) {
+                                System.out.println("Resolving to reduce");
+                                GOTO.get(state).remove(symbol);
+                            } else if (symPrecedence.precedence == 0 && !symPrecedence.isAssociative) {
+                                reportShiftReduceConflict(state, symbol, rules);
+                                System.err.println("Cannot resolve shift-reduce conflict due to non-associativity of " + g.getSymbolFromID(symbol));
+                                throw new RuntimeException("Cannot resolve shift-reduce conflict due to non-associativity of " + g.getSymbolFromID(symbol));
+                            } else if (symPrecedence.precedence > 0) {
                                 System.out.println("Resolving to shift");
                             }
                         } else {

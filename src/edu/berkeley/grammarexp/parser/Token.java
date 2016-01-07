@@ -5,7 +5,7 @@ package edu.berkeley.grammarexp.parser;
  * Date: 12/5/15
  * Time: 10:40 AM
  */
-class Token {
+public class Token {
     private Object val;
 
     public Token(Object val) {

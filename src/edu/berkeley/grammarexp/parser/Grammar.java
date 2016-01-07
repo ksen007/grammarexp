@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Author: Koushik Sen (ksen@cs.berkeley.edu)
@@ -25,8 +26,9 @@ class Precedence {
 }
 
 public class Grammar {
-    final public static String LB = "{{";
-    final public static String RB = "}}";
+    final public static String LB = "(%";
+    final public static String RB = "%)";
+    final public static String ESCAPE = "%";
     private ArrayList nonTerminals;
     private ArrayList<Boolean> isHiddenNonTerminals;
     private HashMap<Object, Integer> nonTerminalsToId;
@@ -255,7 +257,7 @@ public class Grammar {
     }
 
 
-    private ASTNode parseAux(Scanner scanner) throws IOException {
+    public ASTNode parseToAST(Scanner scanner) throws IOException {
         LRStack stack = new LRStack();
         stack.push(new ASTNodeLeaf(0, "", false), 0);
         int token;
@@ -292,33 +294,42 @@ public class Grammar {
         }
     }
 
+    public ASTNode parseToAST(String inp) throws IOException {
+        return parseToAST(new CharStreamScanner(this, new InputStreamReader(new ByteArrayInputStream(inp.getBytes()))));
+    }
+
     public String parse(Scanner scanner) throws IOException {
-        ASTNode ast = parseAux(scanner);
+        ASTNode ast = parseToAST(scanner);
         LinkedList dfs = new LinkedList();
         String prev = "";
         StringBuilder sb = new StringBuilder();
+        StringBuilder tmp = new StringBuilder();
         dfs.addFirst(ast);
         while (!dfs.isEmpty()) {
             Object e = dfs.removeFirst();
             if (e instanceof String) {
+                String inter = tmp.toString();
+                inter = inter.replaceAll(Pattern.quote(LB), LB+ESCAPE);
+                inter = inter.replaceAll(Pattern.quote(RB), ESCAPE+RB);
+                sb.append(inter);
                 sb.append(e);
+                tmp.setLength(0);
             } else {
                 ASTNode node = (ASTNode)e;
                 if (!node.isLeaf()) {
                     LinkedList<ASTNode> children = new LinkedList<ASTNode>(node.getChildren());
                     Collections.reverse(children);
                     if (node.isVisible) {
-                        dfs.addFirst(RB);
+                        dfs.addFirst(" "+RB);
                     }
                     for (ASTNode child : children) {
                         dfs.addFirst(child);
                     }
                     if (node.isVisible) {
-                        dfs.addFirst(getSymbolFromID(node.ID).toString() + " ");
-                        dfs.addFirst(LB);
+                        dfs.addFirst(LB+getSymbolFromID(node.ID).toString() + " ");
                     }
                 } else {
-                    sb.append(node.getValue().toString());
+                    tmp.append(node.getValue().toString());
 //                    String tmp = prev + node;
 //                    if (tmp.equals(LB) || tmp.equals(RB)) {
 //                        sb.append(LB);
@@ -331,9 +342,11 @@ public class Grammar {
                 }
             }
         }
-        if (!prev.equals("")) {
-            sb.append(prev);
-        }
+        String inter = tmp.toString();
+        inter = inter.replaceAll(Pattern.quote(LB), LB+ESCAPE);
+        inter = inter.replaceAll(Pattern.quote(RB), ESCAPE+RB);
+        sb.append(inter);
+        tmp.setLength(0);
         return sb.toString();
     }
 

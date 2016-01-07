@@ -394,7 +394,7 @@ public class GrammarTest {
 
         g.compile();
         String inp = "x=**x";
-        String expected = "{{S x={{E *{{E *{{E x}}}}}}}}";
+        String expected = "(%S x=(%E *(%E *(%E x %) %) %) %)";
         String out = g.parse(inp);
         assertEquals(expected, out);
     }
@@ -419,7 +419,7 @@ public class GrammarTest {
 
         g.compile();
         String inp = "(x)x(x)x";
-        String expected = "{{E (x){{E {{E x}}{{E (x){{E x}}}}}}}}";
+        String expected = "(%E (x)(%E (%E x %)(%E (x)(%E x %) %) %) %)";
         String out = g.parse(inp);
         assertEquals(expected, out);
     }
@@ -479,7 +479,7 @@ public class GrammarTest {
         g.compile();
 
         String inp = "1+2*6/2+3";
-        String expected = "{{expr {{expr 1+{{expr {{expr 2*6}}/2}}}}+3}}";
+        String expected = "(%expr (%expr 1+(%expr (%expr 2*6 %)/2 %) %)+3 %)";
         String out = g.parse(inp);
         assertEquals(expected, out);
    }
