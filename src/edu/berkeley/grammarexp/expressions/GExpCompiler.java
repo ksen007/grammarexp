@@ -1,10 +1,12 @@
 package edu.berkeley.grammarexp.expressions;
 
-import edu.berkeley.grammarexp.parser.Grammar;
-import edu.berkeley.grammarexp.parser.Rule;
-import edu.berkeley.grammarexp.parser.Token;
+import edu.berkeley.grammarexp.parser.*;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.LinkedList;
+import java.util.Stack;
 
 /**
  * Author: Koushik Sen (ksen@cs.berkeley.edu)
@@ -13,14 +15,17 @@ import java.io.IOException;
  */
 public class GExpCompiler {
     Grammar g;
+    State nfa;
+    State matchstate;
+    int nStates = 0;
 
     /* http://stackoverflow.com/questions/265457/regex-grammar/265467#265467 */
 
-    public GExpCompiler() {
+    public GExpCompiler(String exp) throws IOException {
         g = new Grammar();
 
-        int GE = g.getNonTerminalID("GE");
-        int character = g.getHiddenNonTerminalID("character");
+        final int GE = g.getNonTerminalID("GE");
+        final int character = g.getHiddenNonTerminalID("character");
         int CharacterClass = g.getHiddenNonTerminalID("CharacterClass");
 
         g.addPrecedence("|", true, false);
@@ -155,10 +160,132 @@ public class GExpCompiler {
         g.addPrecedenceSameAs(C, concat);
 
         g.compile();
+        ASTNode ast = g.parseToAST(exp);
+        final Stack<Fragment> stack = new Stack<Fragment>();
+
+        ast.visitPostOrder(new ASTVisitor() {
+            Object lastToken;
+
+            @Override
+            public void visitInternalNodeBefore(int id, LinkedList<ASTNode> list) {
+
+            }
+
+            @Override
+            public void visitInternalNodeAfter(int id, LinkedList<ASTNode> list) {
+                Fragment tmp;
+                if (id == character) {
+                    stack.push(Fragment.literal((Character)lastToken));
+                }
+                if (list.size()>=2 && id == GE) {
+                    ASTNode opnode = list.get(1);
+                    if (opnode.isLeaf()) {
+                        char op = (Character)opnode.getValue();
+                        switch (op) {
+                            case '|':
+                                tmp = stack.pop();
+                                stack.push(Fragment.alternate(stack.pop(), tmp));
+                                break;
+                            case '*':
+                                stack.push(Fragment.star(stack.pop()));
+                                break;
+                            case '+':
+                                stack.push(Fragment.plus(stack.pop()));
+                                break;
+                            case '?':
+                                stack.push(Fragment.question(stack.pop()));
+                                break;
+                        }
+                    }
+                    if (list.size()==2 && list.getFirst().getID() == GE && opnode.getID() == GE) {
+                        tmp = stack.pop();
+                        stack.push(Fragment.concatenate(stack.pop(), tmp));
+                    }
+                }
+            }
+
+            @Override
+            public void visitLeafNode(int id, Object value) {
+                lastToken = value;
+            }
+        });
+
+        Fragment f = stack.pop();
+        this.matchstate = new State(0, null, null, true, false);
+        for(DanglingState ds: f.out) {
+            ds.patch(matchstate);
+        }
+        this.nfa = f.start;
+        this.nStates = State.n;
+        State.n = 0;
     }
 
     public String parse(String exp) throws IOException {
         return g.parse(exp);
+    }
+
+
+    int listid = 0;
+    StateList clist = null, nlist = null;
+
+    private boolean isMatch(StateList l) {
+        for (int i=0; i<l.n; i++) {
+            if (l.s[i] == matchstate) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void addState(StateList l, State s) {
+        if (s == null || s.lastlist == listid) {
+            return;
+        } else {
+            s.lastlist = listid;
+            if (s.isSplit) {
+                addState(l, s.out);
+                addState(l, s.out1);
+                return;
+            }
+            l.s[l.n++] = s;
+        }
+    }
+
+    private StateList startList(State s, StateList l) {
+        listid++;
+        l.n = 0;
+        addState(l, s);
+        return l;
+    }
+
+    private void step(StateList clist, int c, StateList nlist) {
+        State s;
+        listid++;
+        nlist.n = 0;
+        for (int i=0; i<clist.n; i++) {
+            s = clist.s[i];
+            if (s.c == c)
+                addState(nlist, s.out);
+        }
+    }
+
+    public boolean match(Scanner inp) throws IOException {
+        StateList tmp;
+        if (clist == null) {
+            clist = new StateList(nStates);
+            nlist = new StateList(nStates);
+        }
+        listid = 0;
+        clist = startList(nfa, clist);
+        while(inp.nextToken() != g.endToken) {
+            step(clist, (Character)inp.tokenValue, nlist);
+            tmp = clist; clist = nlist; nlist = tmp;
+        }
+        return isMatch(clist);
+    }
+
+    public boolean match(String inp) throws IOException {
+        return match(new CharStreamScanner(g, new InputStreamReader(new ByteArrayInputStream(inp.getBytes()))));
     }
 
     /*
