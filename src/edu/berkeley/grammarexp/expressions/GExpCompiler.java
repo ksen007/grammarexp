@@ -2,9 +2,9 @@ package edu.berkeley.grammarexp.expressions;
 
 import edu.berkeley.grammarexp.parser.*;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.Stack;
 
@@ -15,6 +15,7 @@ import java.util.Stack;
  */
 public class GExpCompiler {
     Grammar g;
+    StreamTokenizer scanner;
     State nfa;
     State matchstate;
     int nStates = 0;
@@ -23,10 +24,39 @@ public class GExpCompiler {
 
     public GExpCompiler(String exp) throws IOException {
         g = new Grammar();
+        scanner = new StreamTokenizer(g);
 
         final int GE = g.getNonTerminalID("GE");
-        final int character = g.getHiddenNonTerminalID("character");
+        final int Balanced = g.getNonTerminalID("Balanced");
+        final int character = g.getHiddenNonTerminalID("Character");
         int CharacterClass = g.getHiddenNonTerminalID("CharacterClass");
+        int CompoundCharacter = g.getHiddenNonTerminalID("CompoundCharacter");
+
+        int LB = g.getTerminalID(g.LB); scanner.addString(LB);
+        int RB = g.getTerminalID(g.RB); scanner.addString(RB);
+        int LR = g.getTerminalID("\\O"); scanner.addString(LR);
+        int LPAREN = g.getTerminalID("\\("); scanner.addString(LPAREN);
+        int RPAREN = g.getTerminalID("\\)"); scanner.addString(RPAREN);
+        int LCURLY = g.getTerminalID("\\{");  scanner.addString(LCURLY);
+        int RCURLY = g.getTerminalID("\\}");  scanner.addString(RCURLY);
+        int LSQUARE = g.getTerminalID("\\[");  scanner.addString(LSQUARE);
+        int RSQUARE = g.getTerminalID("\\]");  scanner.addString(RSQUARE);
+        int PIPE = g.getTerminalID("\\|");  scanner.addString(PIPE);
+        int STAR = g.getTerminalID("\\*");  scanner.addString(STAR);
+        int PLUS = g.getTerminalID("\\+");  scanner.addString(PLUS);
+        int QUESTION = g.getTerminalID("\\?");  scanner.addString(QUESTION);
+        int PERIOD = g.getTerminalID("\\.");  scanner.addString(PERIOD);
+        int ESCAPEDLB = g.getTerminalID(g.LB + g.ESCAPE);  scanner.addString(ESCAPEDLB);
+        int ESCAPEDRB = g.getTerminalID(g.ESCAPE + g.RB);  scanner.addString(ESCAPEDRB);
+        int PERCENT = g.getTerminalID("\\%");  scanner.addString(PERCENT);
+
+        int WORD = g.getTerminalID("\\w");   scanner.addString(WORD);
+        int NOTWORD = g.getTerminalID("\\W");  scanner.addString(NOTWORD);
+        int SPACE = g.getTerminalID("\\s");  scanner.addString(SPACE);
+        int NOTSPACE = g.getTerminalID("\\S");  scanner.addString(NOTSPACE);
+        int DIGIT = g.getTerminalID("\\d");  scanner.addString(DIGIT);
+        int NOTDIGIT = g.getTerminalID("\\D");  scanner.addString(NOTDIGIT);
+
 
         g.addPrecedence("|", true, false);
 
@@ -36,47 +66,54 @@ public class GExpCompiler {
         g.addPrecedence("+", true, false);
         g.addPrecedenceAsPrevious("*", true, false);
         g.addPrecedenceAsPrevious("?", true, false);
+        g.addPrecedence(g.ESCAPE, true, false);
 
         g.addProduction(GE, "(", GE, ")");
-
         Rule C = g.addProduction(GE, GE, GE);
-
         g.addProduction(GE, GE, "|", GE);
         g.addProduction(GE, GE, "*");
         g.addProduction(GE, GE, "+");
         g.addProduction(GE, GE, "?");
         g.addProduction(GE, character);
         g.addProduction(GE, CharacterClass);
+        g.addProduction(GE, CompoundCharacter);
+        g.addProduction(GE, Balanced);
 
-        g.addProduction(CharacterClass, "\\(");
-        g.addProduction(CharacterClass, "\\)");
-        g.addProduction(CharacterClass, "\\*");
-        g.addProduction(CharacterClass, "\\+");
-        g.addProduction(CharacterClass, "\\[");
-        g.addProduction(CharacterClass, "\\]");
-        g.addProduction(CharacterClass, "\\{");
-        g.addProduction(CharacterClass, "\\|");
-        g.addProduction(CharacterClass, "\\}");
+        g.addProduction(Balanced, LB, GE, RB);
+        g.addProduction(Balanced, LR);
+
+        g.addProduction(CompoundCharacter, PIPE);
+        g.addProduction(CompoundCharacter, STAR);
+        g.addProduction(CompoundCharacter, PLUS);
+        g.addProduction(CompoundCharacter, QUESTION);
+        g.addProduction(CompoundCharacter, LPAREN);
+        g.addProduction(CompoundCharacter, RPAREN);
+        g.addProduction(CompoundCharacter, LSQUARE);
+        g.addProduction(CompoundCharacter, RSQUARE);
+        g.addProduction(CompoundCharacter, LCURLY);
+        g.addProduction(CompoundCharacter, RCURLY);
+        g.addProduction(CompoundCharacter, PERIOD);
+        g.addProduction(CompoundCharacter, PERCENT);
+        g.addProduction(CompoundCharacter, ESCAPEDLB);
+        g.addProduction(CompoundCharacter, ESCAPEDRB);
+
+        g.addProduction(CharacterClass, WORD);
+        g.addProduction(CharacterClass, NOTWORD);
+        g.addProduction(CharacterClass, DIGIT);
+        g.addProduction(CharacterClass, NOTDIGIT);
+        g.addProduction(CharacterClass, SPACE);
+        g.addProduction(CharacterClass, NOTSPACE);
         g.addProduction(CharacterClass, ".");
-        g.addProduction(CharacterClass, "\\.");
-        g.addProduction(CharacterClass, "\\?");
-
-        g.addProduction(CharacterClass, "\\w");
-        g.addProduction(CharacterClass, "\\W");
-        g.addProduction(CharacterClass, "\\d");
-        g.addProduction(CharacterClass, "\\D");
-        g.addProduction(CharacterClass, "\\s");
-        g.addProduction(CharacterClass, "\\S");
 
 
         g.addProduction(character, "\n");
         g.addProduction(character, "\r");
         g.addProduction(character, "\f");
         g.addProduction(character, "\t");
+        g.addProduction(character, " ");
 
         g.addProduction(character, "#");
         g.addProduction(character, "$");
-        g.addProduction(character, "%");
         g.addProduction(character, "&");
         g.addProduction(character, "'");
         g.addProduction(character, ",");
@@ -285,7 +322,9 @@ public class GExpCompiler {
     }
 
     public boolean match(String inp) throws IOException {
-        return match(new CharStreamScanner(g, new InputStreamReader(new ByteArrayInputStream(inp.getBytes()))));
+        Reader stream = new StringReader(inp);
+        scanner.setStream(stream);
+        return match(scanner);
     }
 
     /*

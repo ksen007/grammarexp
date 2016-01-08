@@ -1,8 +1,7 @@
 package edu.berkeley.grammarexp.parser;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -295,7 +294,10 @@ public class Grammar {
     }
 
     public ASTNode parseToAST(String inp) throws IOException {
-        return parseToAST(new CharStreamScanner(this, new InputStreamReader(new ByteArrayInputStream(inp.getBytes()))));
+        StringReader stream = new StringReader(inp);
+        CharStreamScanner scanner = new CharStreamScanner(this);
+        scanner.setStream(stream);
+        return parseToAST(scanner);
     }
 
     public String parse(Scanner scanner) throws IOException {
@@ -351,7 +353,10 @@ public class Grammar {
     }
 
     public String parse(String inp) throws IOException {
-        return parse(new CharStreamScanner(this, new InputStreamReader(new ByteArrayInputStream(inp.getBytes()))));
+        StringReader stream = new StringReader(inp);
+        CharStreamScanner scanner = new CharStreamScanner(this);
+        scanner.setStream(stream);
+        return parse(scanner);
     }
 
 }

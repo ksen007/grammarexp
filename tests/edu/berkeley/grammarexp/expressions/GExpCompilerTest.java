@@ -21,6 +21,7 @@ public class GExpCompilerTest {
     public void test2() throws Exception {
         //String expected = "(%GE (%GE (%GE (%GE a %)(%GE (%GE b %)* %) %)(%GE a %) %)|(%GE a %) %)";
         GExpCompiler gexp = (new GExpCompiler("(a|b)*aba(a|b)*"));
+        System.out.println(gexp.parse("(a|b)*aba(a|b)*"));
         Assert.assertEquals(true, gexp.match("aabab"));
         Assert.assertEquals(false, gexp.match("aabbab"));
         Assert.assertEquals(false, gexp.match("a"));
